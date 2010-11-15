@@ -43,6 +43,7 @@ Backup*
 CVS/
 PrecompiledWeb/
 UpgradeLog*.*
+[Bb]uildArtifacts/
 [Bb]in/
 [Dd]ebug/
 [Oo]bj/
