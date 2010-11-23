@@ -48,6 +48,7 @@ UpgradeLog*.*
 [Dd]ebug/
 [Oo]bj/
 [Rr]elease/
+[Ss]andcastle/[Dd]ata
 [Tt]humbs.db
 _UpgradeReport_Files
 _[Rr]e[Ss]harper.*/
