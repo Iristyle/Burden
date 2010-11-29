@@ -42,7 +42,7 @@ syntax: glob
 Ankh.Load
 Backup*
 CVS/
-PrecompiledWeb/
+[Pp]recompiled[Ww]eb/
 UpgradeLog*.*
 [Bb]uildArtifacts/
 [Bb]in/
