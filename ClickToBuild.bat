@@ -1,2 +1,2 @@
-PowerShell -Command ".\build.ps1 BuildAll"
+PowerShell -Command ".\Build\build.ps1 BuildAll"
 pause
