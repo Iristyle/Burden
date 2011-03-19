@@ -57,3 +57,7 @@ hgignore[.-]*
 ignore[.-]*
 svnignore[.-]*
 lint.db
+.DS_Store
+[Cc]lientBin/
+[Ii]ndex.dat
+[Ss]torage.dat
