@@ -1,0 +1,14 @@
+# see https://github.com/mono/mono-tools/blob/master/gendarme/mono-options.ignore for complete example
+# implemented in https://github.com/mono/mono-tools/blob/master/gendarme/console/IgnoreFileList.cs
+# single rule must be followed by one or more targets
+
+# comment
+# R: Rule
+# M: Method
+# T: Type (no spaces allowed)
+# A: Assembly - we support Name, FullName and *
+# N: namespace - special case (no need to resolve)
+# @: include file
+# for instance
+# R: Gendarme.Rules.Design.Generic.PreferGenericsOverRefObjectRule
+# A: *
