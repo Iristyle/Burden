@@ -61,3 +61,4 @@ lint.db
 [Cc]lientBin/
 [Ii]ndex.dat
 [Ss]torage.dat
+*.sln.docstates
