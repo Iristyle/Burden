@@ -5,7 +5,12 @@ using System.Text;
 
 namespace EPS.Concurrency.Tests.Unit
 {
-	public class AutoJobQueueTest
+	public class AutoJobQueueTest :
+		IJobQueueTest<AutoJobQueue>
 	{
+		public AutoJobQueueTest()
+			: base(() => new AutoJobQueue(200))
+		{ }
 	}
+
 }
