@@ -74,11 +74,15 @@ namespace EPS.Concurrency
 
 		public IObservable<Unit> Add(Action action)
 		{
+			if (null == action) { throw new ArgumentNullException("action"); }
+
 			return Add(Observable.ToAsync(action));
 		}
 
 		public virtual IObservable<Unit> Add(Func<IObservable<Unit>> asyncStart)
 		{
+			if (null == asyncStart) { throw new ArgumentNullException("asyncStart"); }
+
 			Job job = new Job()
 			{
 				AsyncStart = asyncStart,

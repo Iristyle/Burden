@@ -11,6 +11,10 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Reactive, Version=1.0.10605.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\lib\Rx-1.0.10605\Net4\System.Reactive.dll</HintPath>
+    </Reference>
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -19,8 +23,15 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AutoJobQueueTest.cs" />
+    <Compile Include="IJobQueueTest.cs" />
     <Compile Include="ManualJobQueueTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\EPS.Concurrency\EPS.Concurrency.csproj">
+      <Project>{8D3539C9-8E82-4EDE-A9E2-5D7DF32F506C}</Project>
+      <Name>EPS.Concurrency</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="..\Build\Shared.Test.targets" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

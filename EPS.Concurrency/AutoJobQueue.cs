@@ -13,18 +13,24 @@ namespace EPS.Concurrency
 		public AutoJobQueue(int maxConcurrent)
 		{
 			if (maxConcurrent < 1)
+			{
 				throw new ArgumentOutOfRangeException("maxConcurrent");
+			}
 
 			this.maxConcurrent = maxConcurrent;
 		}
 
 		public override IObservable<Unit> Add(Func<IObservable<Unit>> asyncStart)
 		{
+			if (null == asyncStart) { throw new ArgumentNullException("asyncStart"); }
+
 			return Add(asyncStart, true);
 		}
 
 		public IObservable<Unit> Add(Func<IObservable<Unit>> asyncStart, bool autoStart)
 		{
+			if (null == asyncStart) { throw new ArgumentNullException("asyncStart"); }
+
 			IObservable<Unit> whenCompletes = base.Add(asyncStart);
 			if (autoStart)
 				StartUpTo(maxConcurrent);
