@@ -5,9 +5,9 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("EPS.Concurrency")]
+[assembly: AssemblyTitle("EPS.Concurrency.Tests.Unit")]
 [assembly: AssemblyDescription("")]
-[assembly: AssemblyProduct("EPS.Concurrency")]
+[assembly: AssemblyProduct("EPS.Concurrency.Tests.Unit")]
 [assembly: AssemblyCulture("")]
 
 // Setting ComVisible to false makes the types in this assembly not visible 
@@ -16,7 +16,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("2d05d769-8dcc-452b-8b23-9a23febc7c2b")]
+[assembly: Guid("955ab128-d917-44b0-acff-d27ff257404c")]
 
 // Version information for an assembly consists of the following four values:
 //

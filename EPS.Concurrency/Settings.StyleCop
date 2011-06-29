@@ -1,0 +1,7 @@
+<StyleCopSettings Version="4.3">
+  <!-- copy this file as Settings.StyleCop to each and every project that is a regular project to use a shared set of StyleCop disables -->
+  <GlobalSettings>
+    <StringProperty Name="LinkedSettingsFile">..\Build\Settings.StyleCop</StringProperty>
+    <StringProperty Name="MergeSettingsFiles">Linked</StringProperty>
+  </GlobalSettings>
+</StyleCopSettings>
