@@ -23,6 +23,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AutoJobQueueTest.cs" />
+    <Compile Include="DurableJobStorageMonitorTest.cs" />
+    <Compile Include="IDurableJobStorageQueueTest.cs" />
     <Compile Include="IJobQueueTest.cs" />
     <Compile Include="ManualJobQueueTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -31,6 +33,10 @@
     <ProjectReference Include="..\EPS.Concurrency\EPS.Concurrency.csproj">
       <Project>{8D3539C9-8E82-4EDE-A9E2-5D7DF32F506C}</Project>
       <Name>EPS.Concurrency</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\EPS.Utility\EPS.Utility.csproj">
+      <Project>{10D51FFF-4F91-4917-82EA-B7426B2652F6}</Project>
+      <Name>EPS.Utility</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="..\Build\Shared.Test.targets" />
