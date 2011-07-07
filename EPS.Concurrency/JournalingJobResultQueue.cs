@@ -8,7 +8,7 @@ namespace EPS.Concurrency
 		private IDisposable jobCompleted;
 		private IDisposable jobFailed;
 
-		public JournalingJobResultQueue(IDurableJobStorage<TQueue, TQueuePoison> durableJobStorage, Func<TQueue, Exception, TQueuePoison> poisonBuilder,
+		public JournalingJobResultQueue(IDurableJobStorageQueue<TQueue, TQueuePoison> durableJobStorage, Func<TQueue, Exception, TQueuePoison> poisonBuilder,
 			IObservable<Notification<TQueue>> whenJobCompletes, IObservable<Exception> whenJobFails)
 		{
 			if (null == durableJobStorage) { throw new ArgumentNullException("durableJobStorage"); }
