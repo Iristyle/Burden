@@ -73,21 +73,21 @@ namespace EPS.Concurrency.Tests.Unit
 			var scheduler = new HistoricalScheduler();
 			var monitor = new DurableJobStorageMonitor<Incoming, Incoming>(jobStorage, 20, scheduler);
 
-			//X items + a null terminator
+			//X items + a null terminator per each elapsed interval
 			var incomingItems = Enumerable.Repeat(new Incoming() { Id = 2 }, 5)
-				.Concat(new Incoming[] { null }).ToArray();
+				.Concat(new Incoming[] { null, null }).ToArray();
 
 			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).ReturnsNextFromSequence(incomingItems);
 
 			//advance the amount of time that would normally cause our queue to be totally flushed
 			scheduler.AdvanceBy(monitor.PollingInterval.Add(monitor.PollingInterval));
-			//TODO: 7-6-2011-- minor bug here
 			monitor.Subscribe();
 
 			//and now that we have a subscriber, elapse enough time to publish the queue contents
-			scheduler.AdvanceBy(monitor.PollingInterval.Add(monitor.PollingInterval));
+			scheduler.AdvanceBy(monitor.PollingInterval);
+			scheduler.AdvanceBy(monitor.PollingInterval);
 
-			//our transition method should have been called X times based on the list of valid items + 1 time for the null
+			//our transition method should have been called X times based on the list of valid items + 1 time for the null on the first scheduled execution, then an additional time w/ null for the next scheduled execution
 			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).MustHaveHappened(Repeated.Exactly.Times(incomingItems.Length));
 		}
 
@@ -106,7 +106,7 @@ namespace EPS.Concurrency.Tests.Unit
 
 			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).ReturnsNextFromSequence(queuedItems);
 
-			scheduler.AdvanceBy(monitor.PollingInterval.Add(TimeSpan.FromSeconds(1)));
+			scheduler.AdvanceBy(monitor.PollingInterval);
 
 			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).MustHaveHappened(Repeated.Exactly.Times(queuedItems.Length));
 		}
@@ -119,18 +119,20 @@ namespace EPS.Concurrency.Tests.Unit
 			var monitor = new DurableJobStorageMonitor<Incoming, Incoming>(jobStorage, 20, scheduler);
 
 			var queuedItems = Enumerable.Repeat(new Incoming() { Id = 1 }, 5)
+				.Concat(new Incoming[] { null })
 				.Concat(Enumerable.Repeat(new Incoming() { Id = 2 }, 5))
 				.Concat(new Incoming[] { null }).ToArray();
 
 			monitor.Subscribe();
 
-			//TODO: 7-6-2011-- minor bug here
 			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).ReturnsNextFromSequence(queuedItems);
 
-			scheduler.AdvanceBy(monitor.PollingInterval.Add(monitor.PollingInterval));
+			scheduler.AdvanceBy(monitor.PollingInterval);
+			scheduler.AdvanceBy(monitor.PollingInterval);
 
-			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).MustHaveHappened(Repeated.Exactly.Times(queuedItems.Length + 1));
+			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).MustHaveHappened(Repeated.Exactly.Times(queuedItems.Length));
 		}
+
 
 		[Fact]
 		public void Subscribe_PublishesExactSequenceOfItemsAsTheyArePulledFromDurableStorage()
@@ -149,9 +151,36 @@ namespace EPS.Concurrency.Tests.Unit
 
 			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).ReturnsNextFromSequence(queuedItems.Concat(new Incoming[] { null }).ToArray());
 			monitor.Subscribe(publishedItem => { incomingItems.Add(publishedItem); });
-			scheduler.AdvanceBy(monitor.PollingInterval.Add(TimeSpan.FromSeconds(1)));
+			scheduler.AdvanceBy(monitor.PollingInterval);
 
 			Assert.True(queuedItems.SequenceEqual(incomingItems, GenericEqualityComparer<Incoming>.ByAllMembers()));
+		}
+
+		[Fact]
+		public static void Subscribe_PublishesExactSequenceOfItmesOverMultipleElapsedIntervals()
+		{
+			var jobStorage = A.Fake<IDurableJobStorageQueue<Incoming, Incoming>>();
+			var scheduler = new HistoricalScheduler();
+			var monitor = new DurableJobStorageMonitor<Incoming, Incoming>(jobStorage, 20, scheduler);
+
+			List<Incoming> incomingItems = new List<Incoming>();
+
+			var queuedItems = Enumerable.Repeat(new Incoming() { Id = 1 }, 5)
+				.Concat(new Incoming[] { null })
+				.Concat(Enumerable.Repeat(new Incoming() { Id = 2 }, 5))
+				.Concat(new Incoming[] { null })
+				.Concat(Enumerable.Repeat(new Incoming() { Id = 1 }, 2))
+				.Concat(new Incoming[] { null }).ToArray();
+
+			monitor.Subscribe(publishedItem => { incomingItems.Add(publishedItem); });
+
+			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).ReturnsNextFromSequence(queuedItems);
+
+			scheduler.AdvanceBy(monitor.PollingInterval);
+			scheduler.AdvanceBy(monitor.PollingInterval);
+			scheduler.AdvanceBy(monitor.PollingInterval);
+
+			Assert.True(queuedItems.Where(item => null != item).SequenceEqual(incomingItems, GenericEqualityComparer<Incoming>.ByAllMembers()));
 		}
 
 		[Fact]
@@ -165,7 +194,7 @@ namespace EPS.Concurrency.Tests.Unit
 			List<Incoming> incomingItems = new List<Incoming>();
 
 			monitor.Subscribe(publishedItem => { incomingItems.Add(publishedItem); });
-			scheduler.AdvanceBy(monitor.PollingInterval.Add(TimeSpan.FromSeconds(1)));
+			scheduler.AdvanceBy(monitor.PollingInterval);
 
 			Assert.Equal(maxToSlurp, incomingItems.Count);
 		}
@@ -190,7 +219,8 @@ namespace EPS.Concurrency.Tests.Unit
 			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).ReturnsNextFromSequence(queuedItems);
 
 			monitor.Subscribe(publishedItem => { incomingItems.Add(publishedItem); });
-			scheduler.AdvanceBy(monitor.PollingInterval.Add(monitor.PollingInterval));
+			scheduler.AdvanceBy(monitor.PollingInterval);
+			scheduler.AdvanceBy(monitor.PollingInterval);
 
 			Assert.True(queuedItems.Take(maxToSlurp * 2).SequenceEqual(incomingItems, GenericEqualityComparer<Incoming>.ByAllMembers()));
 		}
