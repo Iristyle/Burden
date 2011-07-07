@@ -25,7 +25,7 @@
     <Compile Include="AutoJobQueue.cs" />
     <Compile Include="DurableJobStorageMonitor.cs" />
     <Compile Include="GenericManualJobQueue.cs" />
-    <Compile Include="IDurableJobStorage.cs" />
+    <Compile Include="IDurableJobStorageQueue.cs" />
     <Compile Include="IJobQueue.cs" />
     <Compile Include="JournalingJobResultQueue.cs" />
     <Compile Include="ManualJobQueue.cs" />
