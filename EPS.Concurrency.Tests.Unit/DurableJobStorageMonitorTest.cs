@@ -133,7 +133,6 @@ namespace EPS.Concurrency.Tests.Unit
 			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).MustHaveHappened(Repeated.Exactly.Times(queuedItems.Length));
 		}
 
-
 		[Fact]
 		public void Subscribe_PublishesExactSequenceOfItemsAsTheyArePulledFromDurableStorage()
 		{
