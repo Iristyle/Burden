@@ -22,13 +22,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AutoJobQueue.cs" />
     <Compile Include="DurableJobStorageMonitor.cs" />
-    <Compile Include="GenericManualJobQueue.cs" />
+    <Compile Include="AutoJobQueue.cs" />
+    <Compile Include="IJobResultInspector.cs" />
+    <Compile Include="JobQueueAction.cs" />
+    <Compile Include="JobQueueActionType.cs" />
+    <Compile Include="ManualJobQueue.cs" />
     <Compile Include="IDurableJobStorageQueue.cs" />
     <Compile Include="IJobQueue.cs" />
+    <Compile Include="JobResult.cs" />
     <Compile Include="JournalingJobResultQueue.cs" />
-    <Compile Include="ManualJobQueue.cs" />
     <Compile Include="ObservableExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

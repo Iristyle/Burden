@@ -3,41 +3,35 @@ using System.Reactive;
 
 namespace EPS.Concurrency
 {
-	public class JournalingJobResultQueue<TQueue, TQueuePoison>
+	public class JournalingJobResultQueue<TQueue, TQueueResult, TQueuePoison>
 	{
 		private IDisposable jobCompleted;
-		private IDisposable jobFailed;
 
-		public JournalingJobResultQueue(IDurableJobStorageQueue<TQueue, TQueuePoison> durableJobStorage, Func<TQueue, Exception, TQueuePoison> poisonBuilder,
-			IObservable<Notification<TQueue>> whenJobCompletes, IObservable<Exception> whenJobFails)
+		public JournalingJobResultQueue(IDurableJobStorageQueue<TQueue, TQueuePoison> durableJobStorage, 
+			IJobResultInspector<TQueue, TQueueResult, TQueuePoison> jobResultInspector,
+			IObservable<Notification<JobResult<TQueue, TQueueResult>>> whenJobCompletes)
 		{
 			if (null == durableJobStorage) { throw new ArgumentNullException("durableJobStorage"); }
-			if (null == poisonBuilder) { throw new ArgumentNullException("poisonBuilder"); }
+			if (null == jobResultInspector) { throw new ArgumentNullException("jobResultInspector"); }
 			if (null == whenJobCompletes) { throw new ArgumentNullException("whenJobCompletes"); }
-			if (null == whenJobFails) { throw new ArgumentNullException("whenJobFails"); }
-
 
 			this.jobCompleted = whenJobCompletes
-			.Subscribe((notification) =>
+			.Subscribe(notification =>
 			{
-				if (null == notification.Exception)
+				var queueAction = jobResultInspector.Inspect(notification);
+
+				if (queueAction.ActionType == JobQueueActionType.Poison)
 				{
-					durableJobStorage.Complete(notification.Value);
+					durableJobStorage.Poison(notification.Value.Input, queueAction.QueuePoison);
+				}
+				else if (queueAction.ActionType == JobQueueActionType.Complete)
+				{
+					durableJobStorage.Complete(notification.Value.Input);
 				}
 				else
 				{
-					durableJobStorage.Poison(notification.Value, poisonBuilder(notification.Value, notification.Exception));
+					//TODO: 7-8-2011 -- we should probably be logging this off somewhere
 				}
-			});
-
-			this.jobFailed = whenJobFails
-			.Subscribe((notification) =>
-			{
-				//**********************
-				//TODO: 6-30-2011 -- CRITICAL! need to figure out a way to get at the original input value
-				//***********************
-				throw new NotImplementedException();
-				durableJobStorage.Poison(default(TQueue), poisonBuilder(default(TQueue), notification));
 			});
 		}
 	}
