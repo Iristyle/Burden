@@ -22,11 +22,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AutoJobQueueTest.cs" />
     <Compile Include="DurableJobStorageMonitorTest.cs" />
+    <Compile Include="AutoJobQueueTest.cs" />
     <Compile Include="IDurableJobStorageQueueTest.cs" />
     <Compile Include="IJobQueueTest.cs" />
     <Compile Include="ManualJobQueueTest.cs" />
+    <Compile Include="ObservableExtensionsTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
