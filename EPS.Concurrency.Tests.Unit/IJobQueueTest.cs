@@ -2,49 +2,74 @@ using System;
 using Xunit;
 using System.Threading;
 using FakeItEasy;
+using EPS.Dynamic;
 
 namespace EPS.Concurrency.Tests.Unit
 {
-	public abstract class IJobQueueTest<T>
-		where T: IJobQueue
+	public abstract class IJobQueueTest<TJobQueue, TJobInput, TJobOutput>
+		where TJobQueue : IJobQueue<TJobInput, TJobOutput>
 	{
-		private readonly Func<T> jobQueueFactory;
+		protected readonly Func<TJobQueue> jobQueueFactory;
 
-		public IJobQueueTest(Func<T> jobQueueFactory)
+		public IJobQueueTest(Func<TJobQueue> jobQueueFactory)
 		{
 			this.jobQueueFactory = jobQueueFactory;
 		}
 
 		[Fact]
+		public void Add_ThrowsOnNullItemForReferenceTypes()
+		{
+			TJobQueue queue = jobQueueFactory();
+			if (typeof(TJobInput).IsValueType)
+				return;
+
+			var item = (null as object).Cast<TJobInput>();
+
+			Assert.Throws<ArgumentNullException>(() => queue.Add(item, jobInput => default(TJobOutput)));
+		}
+
+		[Fact]
 		public void Add_ThrowsOnNullAction()
 		{
-			T queue = jobQueueFactory();
+			TJobQueue queue = jobQueueFactory();
 
-			Assert.Throws<ArgumentNullException>(() => queue.Add(null as Action));
+			Assert.Throws<ArgumentNullException>(() => queue.Add(default(TJobInput), null as Func<TJobInput, TJobOutput>));
+		}
+
+		[Fact]
+		public void Add_ThrowsOnNullItemForValueFactoryOverload()
+		{
+			TJobQueue queue = jobQueueFactory();
+
+			Assert.Throws<ArgumentNullException>(() => queue.Add(default(TJobInput), jobInput => null as IObservable<TJobOutput>));
 		}
 
 		[Fact]
 		public void Add_ThrowsOnNullObservableFactory()
 		{
-			T queue = jobQueueFactory();
+			TJobQueue queue = jobQueueFactory();
 
-			Assert.Throws<ArgumentNullException>(() => queue.Add(null as Func<IObservable<System.Reactive.Unit>>));
+			Assert.Throws<ArgumentNullException>(() => queue.Add(default(TJobInput), null as Func<TJobInput, IObservable<TJobOutput>>));
 		}
 
 		[Fact]
 		public void Add_ThrowsOnNullObservable()
 		{
-			T queue = jobQueueFactory();
+			TJobQueue queue = jobQueueFactory();
 
-			Assert.Throws<ArgumentNullException>(() => queue.Add(() => null as IObservable<System.Reactive.Unit>));
+			Assert.Throws<ArgumentNullException>(() => queue.Add(default(TJobInput), (input) => null as IObservable<TJobOutput>));
 		}
 
 		[Fact]
 		public void Add_RunsJob()
 		{
-			T queue = jobQueueFactory();
+			TJobQueue queue = jobQueueFactory();
 			ManualResetEvent executedEvent = new ManualResetEvent(false);
-			queue.Add(() => executedEvent.Set());
+			queue.Add(default(TJobInput), job =>
+			{
+				executedEvent.Set();
+				return null;
+			});
 
 			Assert.True(executedEvent.WaitOne(TimeSpan.FromSeconds(1).Milliseconds));
 		}
@@ -52,14 +77,13 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact]
 		public void Add_RunsJob_CallsWhenJobCompletes()
 		{
-			T queue = jobQueueFactory();
+			TJobQueue queue = jobQueueFactory();
 			ManualResetEvent completedEvent = new ManualResetEvent(false);
 			queue.WhenJobCompletes.Subscribe((notification) => completedEvent.Set());
-			queue.Add(() => { });
+			queue.Add(default(TJobInput), job => { return null; });
 
 			Assert.True(completedEvent.WaitOne(TimeSpan.FromSeconds(1).Milliseconds));
 		}
-
 		
 
 		[Fact(Skip = "Write tests to ensure our JobQueue is working properly")]

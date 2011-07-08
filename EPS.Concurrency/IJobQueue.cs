@@ -2,26 +2,19 @@ using System;
 using System.Reactive;
 
 namespace EPS.Concurrency
-{
-	public interface IJobQueue : IJobQueue<Unit>
-	{
-		//http://rxpowertoys.codeplex.com/
-		IObservable<Unit> Add(Action action);
-	}
-
-	public interface IJobQueue<T>
+{	
+	public interface IJobQueue<TJobInput, TJobOutput>
 	{
 		//http://rxpowertoys.codeplex.com/
 
-		IObservable<Notification<T>> WhenJobCompletes { get; }
-		IObservable<T> WhenQueueEmpty { get; }
-		IObservable<Exception> WhenJobFails { get; }
+		IObservable<Notification<JobResult<TJobInput, TJobOutput>>> WhenJobCompletes { get; }
+		IObservable<TJobInput> WhenQueueEmpty { get; }
 
 		int RunningCount { get; }
 		int QueuedCount { get; }
 
-		IObservable<T> Add(Func<T> action);
-		IObservable<T> Add(Func<IObservable<T>> asyncStart);
+		IObservable<JobResult<TJobInput, TJobOutput>> Add(TJobInput input, Func<TJobInput, TJobOutput> action);
+		IObservable<JobResult<TJobInput, TJobOutput>> Add(TJobInput input, Func<TJobInput, IObservable<TJobOutput>> asyncStart);
 
 		bool StartNext();
 		int StartUpTo(int maxConcurrentlyRunning);

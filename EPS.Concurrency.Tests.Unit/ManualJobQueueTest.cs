@@ -5,11 +5,11 @@ using Xunit;
 
 namespace EPS.Concurrency.Tests.Unit
 {
-	public class ManualJobQueueTest : 
-		IJobQueueTest<ManualJobQueue>
+	public class ManualJobQueueTest<TJobInput, TJobOutput> :
+		IJobQueueTest<ManualJobQueue<TJobInput, TJobOutput>, TJobInput, TJobOutput>
 	{
-		public ManualJobQueueTest()
-			: base (() => new ManualJobQueue())
+		public ManualJobQueueTest(Func<ManualJobQueue<TJobInput, TJobOutput>> jobQueueFactory)
+			: base (jobQueueFactory)
 		{ }
 	}
 }
