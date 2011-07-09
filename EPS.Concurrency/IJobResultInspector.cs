@@ -13,6 +13,7 @@ namespace EPS.Concurrency
 		/// <summary>	Inspects an Rx Notification of JobResult, determining if the result should cause a queue poison or completion. </summary>
 		/// <param name="jobResult">	The job result. </param>
 		/// <returns>	A JobQueueAction specifying what to do about the JobResult. </returns>
+		/// <exception cref="ArgumentNullException">	Should throw on a null Notification. </exception>
 		JobQueueAction<TQueuePoison> Inspect(Notification<JobResult<TJobInput, TJobOutput>> jobResult);
 	}
 }
