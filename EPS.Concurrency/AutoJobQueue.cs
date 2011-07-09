@@ -39,7 +39,7 @@ namespace EPS.Concurrency
 		{
 			base.OnJobCompleted(job, jobResult, error);
 			if (error != null)
-				Scheduler.ThreadPool.Schedule(() => StartUpTo(maxConcurrent));
+				Scheduler.TaskPool.Schedule(() => StartUpTo(maxConcurrent));
 			else
 				StartUpTo(maxConcurrent);
 		}
