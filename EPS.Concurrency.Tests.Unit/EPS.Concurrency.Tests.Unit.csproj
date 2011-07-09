@@ -27,6 +27,7 @@
     <Compile Include="IDurableJobStorageQueueTest.cs" />
     <Compile Include="IJobQueueTest.cs" />
     <Compile Include="JobQueueActionTest.cs" />
+    <Compile Include="JournalingJobResultQueueTest.cs" />
     <Compile Include="ManualJobQueueTest.cs" />
     <Compile Include="ObservableExtensionsTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
