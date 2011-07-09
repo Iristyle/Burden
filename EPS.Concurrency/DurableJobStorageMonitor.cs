@@ -28,7 +28,7 @@ namespace EPS.Concurrency
 
 
 		public DurableJobStorageMonitor(IDurableJobStorageQueue<TQueue, TQueuePoison> durableJobStorage, int maxQueueItemsToHandle)
-			: this(durableJobStorage, maxQueueItemsToHandle, Scheduler.ThreadPool)
+			: this(durableJobStorage, maxQueueItemsToHandle, Scheduler.TaskPool)
 		{ }
 
 		internal DurableJobStorageMonitor(IDurableJobStorageQueue<TQueue, TQueuePoison> durableJobStorage, int maxQueueItemsToHandle, IScheduler scheduler)
