@@ -126,5 +126,10 @@ namespace EPS.Concurrency.Tests.Unit
 		public void WhenJobFails_Tests()
 		{
 		}
+
+		[Fact]
+		public void WhenJobCompletes_FailureNotificationsAlwaysContainsJobQueueExceptions()
+		{
+		}
 	}
 }
