@@ -28,7 +28,7 @@
     <Compile Include="IJobQueueTest.cs" />
     <Compile Include="IJobResultInspectorTest.cs" />
     <Compile Include="JobQueueActionTest.cs" />
-    <Compile Include="JobQueueExceptionTest.cs" />
+    <Compile Include="JobResultTest.cs" />
     <Compile Include="JournalingJobResultQueueTest.cs" />
     <Compile Include="ManualJobQueueTest.cs" />
     <Compile Include="ObservableExtensionsTest.cs" />
