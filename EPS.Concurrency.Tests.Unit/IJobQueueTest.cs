@@ -1,10 +1,10 @@
 using System;
-using Xunit;
-using System.Threading;
-using FakeItEasy;
-using EPS.Dynamic;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
+using System.Threading;
+using EPS.Dynamic;
+using FakeItEasy;
+using Xunit;
 
 namespace EPS.Concurrency.Tests.Unit
 {
