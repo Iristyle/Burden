@@ -14,22 +14,6 @@ namespace EPS.Concurrency.Tests.Unit
 
 	public abstract class JobQueueActionTest<TQueuePoison>
 	{
-		[Fact]
-		public void Constructor_Parameterless_ReturnsActionTypeComplete()
-		{
-			var jobQueueAction = new JobQueueAction<TQueuePoison>();
-
-			Assert.Equal(JobQueueActionType.Complete, jobQueueAction.ActionType);
-		}
-
-		[Fact]
-		public void Constructor_Parameterless_ReturnsDefaultObjectForPoison()
-		{
-			var jobQueueAction = new JobQueueAction<TQueuePoison>();
-
-			Assert.Equal(default(TQueuePoison), jobQueueAction.QueuePoison);
-		}
-
 		[Theory]
 		[InlineData(JobQueueActionType.Complete)]
 		[InlineData(JobQueueActionType.Poison)]
@@ -47,7 +31,7 @@ namespace EPS.Concurrency.Tests.Unit
 		[InlineData(JobQueueActionType.Unknown)]
 		public void Constructor_ByActionType_ReturnsDefaultObjectForPoison(JobQueueActionType actionType)
 		{
-			var jobQueueAction = new JobQueueAction<TQueuePoison>();
+			var jobQueueAction = new JobQueueAction<TQueuePoison>(actionType);
 
 			Assert.Equal(default(TQueuePoison), jobQueueAction.QueuePoison);
 		}

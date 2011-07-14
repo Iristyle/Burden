@@ -130,7 +130,7 @@ namespace EPS.Concurrency.Tests.Unit
 			get
 			{
 				yield return new object[] { Enumerable.Repeat(null as JobQueueAction<object>, 5), 0 };
-				yield return new object[] { Enumerable.Repeat(new JobQueueAction<object>(), 5), 5 };
+				yield return new object[] { Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Complete), 5), 5 };
 				yield return new object[] { Enumerable.Repeat(new JobQueueAction<object>(new object()), 3), 0 };
 				yield return new object[] { Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Poison), 12), 0 };
 				yield return new object[] { Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Unknown), 3), 0 };
@@ -139,7 +139,7 @@ namespace EPS.Concurrency.Tests.Unit
 				yield return new object[] { Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Complete), 15)
 					.Concat(Enumerable.Repeat(new JobQueueAction<object>(new object()), 3))
 					.Concat(Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Unknown), 4))
-					.Concat(Enumerable.Repeat(new JobQueueAction<object>(), 2))
+					.Concat(Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Complete), 2))
 					.Concat(Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Poison), 1))
 					.Concat(Enumerable.Repeat(null as JobQueueAction<object>, 2))
 					, 17 };
@@ -159,7 +159,7 @@ namespace EPS.Concurrency.Tests.Unit
 			get
 			{
 				yield return new object[] { Enumerable.Repeat(null as JobQueueAction<object>, 5), 0 };
-				yield return new object[] { Enumerable.Repeat(new JobQueueAction<object>(), 5), 0 };
+				yield return new object[] { Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Complete), 5), 0 };
 				yield return new object[] { Enumerable.Repeat(new JobQueueAction<object>(new object()), 3), 3 };
 				yield return new object[] { Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Poison), 12), 12 };
 				yield return new object[] { Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Unknown), 3), 0 };
@@ -168,7 +168,7 @@ namespace EPS.Concurrency.Tests.Unit
 				yield return new object[] { Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Complete), 15)
 					.Concat(Enumerable.Repeat(new JobQueueAction<object>(new object()), 3))
 					.Concat(Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Unknown), 4))
-					.Concat(Enumerable.Repeat(new JobQueueAction<object>(), 2))
+					.Concat(Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Complete), 2))
 					.Concat(Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Poison), 1))
 					.Concat(Enumerable.Repeat(null as JobQueueAction<object>, 2))
 					, 4 };
@@ -189,7 +189,7 @@ namespace EPS.Concurrency.Tests.Unit
 			get
 			{
 				yield return new object[] { Enumerable.Repeat(null as JobQueueAction<object>, 5), 0 };
-				yield return new object[] { Enumerable.Repeat(new JobQueueAction<object>(), 5), 0 };
+				yield return new object[] { Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Complete), 5), 0 };
 				yield return new object[] { Enumerable.Repeat(new JobQueueAction<object>(new object()), 3), 0 };
 				yield return new object[] { Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Poison), 12), 0 };
 				yield return new object[] { Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Unknown), 3), 0 };
@@ -198,7 +198,7 @@ namespace EPS.Concurrency.Tests.Unit
 				yield return new object[] { Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Complete), 15)
 					.Concat(Enumerable.Repeat(new JobQueueAction<object>(new object()), 3))
 					.Concat(Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Unknown), 4))
-					.Concat(Enumerable.Repeat(new JobQueueAction<object>(), 2))
+					.Concat(Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Complete), 2))
 					.Concat(Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Poison), 1))
 					.Concat(Enumerable.Repeat(null as JobQueueAction<object>, 2))
 					, 0 };
@@ -218,7 +218,7 @@ namespace EPS.Concurrency.Tests.Unit
 			get
 			{
 				yield return new object[] { Enumerable.Repeat(null as JobQueueAction<object>, 5), 5 };
-				yield return new object[] { Enumerable.Repeat(new JobQueueAction<object>(), 5), 0 };
+				yield return new object[] { Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Complete), 5), 0 };
 				yield return new object[] { Enumerable.Repeat(new JobQueueAction<object>(new object()), 3), 0 };
 				yield return new object[] { Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Poison), 12), 0 };
 				yield return new object[] { Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Unknown), 3), 3 };
@@ -227,7 +227,7 @@ namespace EPS.Concurrency.Tests.Unit
 				yield return new object[] { Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Complete), 15)
 					.Concat(Enumerable.Repeat(new JobQueueAction<object>(new object()), 3))
 					.Concat(Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Unknown), 4))
-					.Concat(Enumerable.Repeat(new JobQueueAction<object>(), 2))
+					.Concat(Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Complete), 2))
 					.Concat(Enumerable.Repeat(new JobQueueAction<object>(JobQueueActionType.Poison), 1))
 					.Concat(Enumerable.Repeat(null as JobQueueAction<object>, 2))
 					, 6 };

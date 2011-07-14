@@ -18,11 +18,6 @@ namespace EPS.Concurrency
 			this.actionType = actionType;
 		}
 
-		/// <summary>	Creates a new instance of this type, with an action type of Complete. </summary>
-		/// <remarks>	7/8/2011. </remarks>
-		public JobQueueAction()
-		{ }
-
 		/// <summary>	Creates a new instance of this type, overriding the action type with Poison, specifying the actual poison value. </summary>
 		/// <remarks>	7/8/2011. </remarks>
 		/// <param name="queuePoison">	The queue poison. </param>
