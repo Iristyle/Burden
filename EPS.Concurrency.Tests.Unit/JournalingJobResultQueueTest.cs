@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using Common.Logging;
@@ -16,7 +15,7 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact]
 		public void Constructor_ThrowsOnNullDurableJobStorage()
 		{
-			Assert.Throws<ArgumentNullException>(() => new JournalingJobResultQueue<int, int, object>(A.Fake<IObservable<Notification<JobResult<int, int>>>>(),
+			Assert.Throws<ArgumentNullException>(() => new JournalingJobResultQueue<int, int, object>(A.Fake<IObservable<JobResult<int, int>>>(),
 			A.Fake<IJobResultInspector<int, int, object>>(),
 			null as IDurableJobStorageQueue<int, object>));
 		}
@@ -24,7 +23,7 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact]
 		public void Constructor_ThrowsOnNullInspector()
 		{
-			Assert.Throws<ArgumentNullException>(() => new JournalingJobResultQueue<int, int, object>(A.Fake<IObservable<Notification<JobResult<int, int>>>>(),
+			Assert.Throws<ArgumentNullException>(() => new JournalingJobResultQueue<int, int, object>(A.Fake<IObservable<JobResult<int, int>>>(),
 			null as IJobResultInspector<int, int, object>,
 			A.Fake<IDurableJobStorageQueue<int, object>>()));
 		}
@@ -32,7 +31,7 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact]
 		public void Constructor_ThrowsOnNullObservable()
 		{
-			Assert.Throws<ArgumentNullException>(() => new JournalingJobResultQueue<int, int, object>(null as IObservable<Notification<JobResult<int, int>>>,
+			Assert.Throws<ArgumentNullException>(() => new JournalingJobResultQueue<int, int, object>(null as IObservable<JobResult<int, int>>,
 			A.Fake<IJobResultInspector<int, int, object>>(),
 			A.Fake<IDurableJobStorageQueue<int, object>>()));
 		}
@@ -42,18 +41,18 @@ namespace EPS.Concurrency.Tests.Unit
 		{
 			var durableJobStorage = A.Fake<IDurableJobStorageQueue<int, object>>();
 			var jobResultInspector = A.Fake<IJobResultInspector<int, int, object>>();
-			var items = new Notification<JobResult<int, int>>[]
+			var items = new JobResult<int, int>[]
 			{
 				null,
-				Notification.CreateOnNext(new JobResult<int, int>(1, 1)),
+				new JobResult<int, int>(1, 1),
 				null,
 				null,
-				Notification.CreateOnNext(new JobResult<int, int>(1, 1))
+				new JobResult<int, int>(1, 1)
 			};
 			var observable = items.ToObservable();
 			var queue = new JournalingJobResultQueue<int, int, object>(observable, jobResultInspector, durableJobStorage, A.Fake<ILog>(), Scheduler.Immediate);
 
-			A.CallTo(() => jobResultInspector.Inspect(A<Notification<JobResult<int, int>>>.Ignored)).MustHaveHappened(Repeated.Exactly.Times(items.Count(n => null != n)));
+			A.CallTo(() => jobResultInspector.Inspect(A<JobResult<int, int>>.Ignored)).MustHaveHappened(Repeated.Exactly.Times(items.Count(n => null != n)));
 		}
 
 		[Fact]
@@ -61,14 +60,13 @@ namespace EPS.Concurrency.Tests.Unit
 		{
 			var durableJobStorage = A.Fake<IDurableJobStorageQueue<int, object>>();
 			var jobResultInspector = A.Fake<IJobResultInspector<int, int, object>>();
-			var observable = new Notification<JobResult<int, int>>[]
-			{ null
-			}.ToObservable();
+			var results = new JobResult<int, int>[]	{ null };
+			var observable = results.ToObservable();
 			var log = A.Fake<ILog>();
 
 			var queue = new JournalingJobResultQueue<int, int, object>(observable, jobResultInspector, durableJobStorage, log, Scheduler.Immediate);
 
-			A.CallTo(() => log.Error(A<Action<FormatMessageHandler>>.Ignored)).MustHaveHappened();
+			A.CallTo(() => log.Error(A<Action<FormatMessageHandler>>.Ignored)).MustHaveHappened(Repeated.Exactly.Times(results.Count(n => null == n)));
 		}
 
 		[Fact]
@@ -76,12 +74,12 @@ namespace EPS.Concurrency.Tests.Unit
 		{
 			var durableJobStorage = A.Fake<IDurableJobStorageQueue<int, object>>();
 			var jobResultInspector = A.Fake<IJobResultInspector<int, int, object>>();
-			var observable = new Notification<JobResult<int, int>>[]
+			var observable = new JobResult<int, int>[]
 			{ }.ToObservable();
 
 			var queue = new JournalingJobResultQueue<int, int, object>(observable, jobResultInspector, durableJobStorage, A.Fake<ILog>(), Scheduler.Immediate);
 
-			A.CallTo(() => jobResultInspector.Inspect(A<Notification<JobResult<int, int>>>.Ignored)).MustNotHaveHappened();
+			A.CallTo(() => jobResultInspector.Inspect(A<JobResult<int, int>>.Ignored)).MustNotHaveHappened();
 		}
 
 		[Fact]
@@ -91,12 +89,12 @@ namespace EPS.Concurrency.Tests.Unit
 			var jobResultInspector = A.Fake<IJobResultInspector<int, int, object>>();
 			var observable = new []
 			{
-				Notification.CreateOnNext(new JobResult<int, int>(1, 1))
+				new JobResult<int, int>(1, 1)
 			}.ToObservable();
 
 			var queue = new JournalingJobResultQueue<int, int, object>(observable, jobResultInspector, durableJobStorage, A.Fake<ILog>(), Scheduler.Immediate);
 
-			A.CallTo(() => jobResultInspector.Inspect(A<Notification<JobResult<int, int>>>.Ignored)).MustHaveHappened(Repeated.Exactly.Once);
+			A.CallTo(() => jobResultInspector.Inspect(A<JobResult<int, int>>.Ignored)).MustHaveHappened(Repeated.Exactly.Once);
 		}
 
 		class JobDetails
@@ -115,10 +113,10 @@ namespace EPS.Concurrency.Tests.Unit
 				Inspector = A.Fake<IJobResultInspector<int, int, object>>(),
 				Log = A.Fake<ILog>()
 			};
-			var observable = Enumerable.Repeat(Notification.CreateOnNext(new JobResult<int, int>(1, 1)), inspectionResults.Length)
+			var observable = Enumerable.Repeat(new JobResult<int, int>(1, 1), inspectionResults.Length)
 			.ToObservable();
 
-			A.CallTo(() => details.Inspector.Inspect(A<Notification<JobResult<int, int>>>.Ignored)).ReturnsNextFromSequence(inspectionResults);
+			A.CallTo(() => details.Inspector.Inspect(A<JobResult<int, int>>.Ignored)).ReturnsNextFromSequence(inspectionResults);
 
 			details.JournalingJobResultQueue = new JournalingJobResultQueue<int, int, object>(observable, details.Inspector, details.DurableStorage, details.Log, Scheduler.CurrentThread);
 			

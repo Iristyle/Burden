@@ -1,5 +1,4 @@
 using System;
-using System.Reactive;
 using FakeItEasy;
 using Xunit;
 
@@ -24,7 +23,7 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact]
 		public void Inspect_ReturnsNonNullResultOnNonNullInput()
 		{
-			var result = factory().Inspect(Notification.CreateOnNext(JobResult.Create(A.Dummy<TJobInput>(), A.Dummy<TJobOutput>())));
+			var result = factory().Inspect(JobResult.CreateOnCompletion(A.Dummy<TJobInput>(), A.Dummy<TJobOutput>()));
 
 			Assert.NotNull(result);
 		}
@@ -32,8 +31,8 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact]
 		public void Inspect_ReturnsUnknownJobResult_WhenNotificationKindOnError_WithNullJobResult()
 		{
-			var notification = Notification.CreateOnError<JobResult<TJobInput, TJobOutput>>(new ArgumentException());
-			var result = factory().Inspect(notification);
+			var jobResult = JobResult.CreateOnError(A.Dummy<TJobInput>(), new ArgumentException());
+			var result = factory().Inspect(jobResult);
 
 			Assert.Equal(JobQueueActionType.Unknown, result.ActionType);
 		}
@@ -42,8 +41,8 @@ namespace EPS.Concurrency.Tests.Unit
 		public void Inspect_ReturnsPoisonJobResult_WhenNotificationKindOnError()
 		{
 			//fakeiteasy should attach a faked up TJobInput to the Error
-			var notification = Notification.CreateOnError<JobResult<TJobInput, TJobOutput>>(A.Fake<JobQueueException<TJobInput>>());
-			var result = factory().Inspect(notification);
+			var jobResult = JobResult.CreateOnError(A.Dummy<TJobInput>(), new ArgumentNullException());
+			var result = factory().Inspect(jobResult);
 
 			Assert.Equal(JobQueueActionType.Poison, result.ActionType);		
 		}
@@ -51,20 +50,10 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact]
 		public void Inspect_ReturnsCompleteJobResult_WhenNotificationComplete()
 		{
-			var notification = Notification.CreateOnCompleted<JobResult<TJobInput, TJobOutput>>();
-			var result = factory().Inspect(notification);
+			var jobResult = JobResult.CreateOnCompletion(A.Dummy<TJobInput>(), A.Dummy<TJobOutput>());
+			var result = factory().Inspect(jobResult);
 
 			Assert.Equal(JobQueueActionType.Complete, result.ActionType);
 		}
-
-		[Fact]
-		public void Inspect_ReturnsNoActionJobResult_WhenNotificationOnNext()
-		{
-			var notification = Notification.CreateOnNext<JobResult<TJobInput, TJobOutput>>(JobResult.Create(A.Dummy<TJobInput>(), A.Dummy<TJobOutput>()));
-			var result = factory().Inspect(notification);
-
-			Assert.Equal(JobQueueActionType.NoAction, result.ActionType);
-		}
-
 	}
 }

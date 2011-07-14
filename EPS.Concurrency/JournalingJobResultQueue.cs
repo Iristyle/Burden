@@ -1,5 +1,4 @@
 using System;
-using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using Common.Logging;
@@ -8,7 +7,8 @@ namespace EPS.Concurrency
 {
 	/// <summary>
 	/// This class journals the results of an in memory observable job publisher to a backing store for durability, using a custom job result
-	/// inspector to determine if the original queue item should be removed or poisoned.  Bad notifications or inspection results are published to the logger.
+	/// inspector to determine if the original queue item should be removed or poisoned.  Bad notifications or inspection results are
+	/// published to the logger.
 	/// </summary>
 	/// <remarks>	7/8/2011. </remarks>
 	/// <typeparam name="TJobInput">   	The type of the input to the job. </typeparam>
@@ -23,13 +23,13 @@ namespace EPS.Concurrency
 		/// <param name="jobCompletionNotifications">	The job completion notification stream. </param>
 		/// <param name="jobResultInspector">		 	The job result inspector. </param>
 		/// <param name="durableJobStorage">		 	The durable job storage. </param>
-		public JournalingJobResultQueue(IObservable<Notification<JobResult<TJobInput, TJobOutput>>> jobCompletionNotifications, 
+		public JournalingJobResultQueue(IObservable<JobResult<TJobInput, TJobOutput>> jobCompletionNotifications, 
 			IJobResultInspector<TJobInput, TJobOutput, TQueuePoison> jobResultInspector,
 			IDurableJobStorageQueue<TJobInput, TQueuePoison> durableJobStorage) :
 			this(jobCompletionNotifications, jobResultInspector, durableJobStorage, LogManager.GetCurrentClassLogger(), Scheduler.TaskPool)
 		{ }
 
-		internal JournalingJobResultQueue(IObservable<Notification<JobResult<TJobInput, TJobOutput>>> jobCompletionNotifications, 
+		internal JournalingJobResultQueue(IObservable<JobResult<TJobInput, TJobOutput>> jobCompletionNotifications, 
 			IJobResultInspector<TJobInput, TJobOutput, TQueuePoison> jobResultInspector,
 			IDurableJobStorageQueue<TJobInput, TQueuePoison> durableJobStorage,
 			ILog log,
@@ -42,7 +42,7 @@ namespace EPS.Concurrency
 
 			this.jobCompleted = jobCompletionNotifications
 			.SubscribeOn(scheduler)
-			.Subscribe(notification =>
+			.Subscribe(notification =>	
 			{
 				if (null == notification)
 				{
@@ -59,15 +59,11 @@ namespace EPS.Concurrency
 				//no need to check 
 				else if (queueAction.ActionType == JobQueueActionType.Poison)
 				{
-					//look to our JobQueueException first for input, then degrade to the jobResult if it has the info we need
-					var jobException = notification.Exception as JobQueueException<TJobInput>;
-					TJobInput input = null != jobException ? jobException.Input : notification.HasValue ? notification.Value.Input : default(TJobInput);
-
-					durableJobStorage.Poison(input, queueAction.QueuePoison);
+					durableJobStorage.Poison(notification.Input, queueAction.QueuePoison);
 				}
 				else if (queueAction.ActionType == JobQueueActionType.Complete)
 				{
-					durableJobStorage.Complete(notification.Value.Input);
+					durableJobStorage.Complete(notification.Input);
 				}
 				else
 				{

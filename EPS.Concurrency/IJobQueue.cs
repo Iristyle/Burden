@@ -17,9 +17,8 @@ namespace EPS.Concurrency
 		/// <summary>
 		/// The Observable that monitors job completion, where completion can be either run to completion, exception or cancellation.
 		/// </summary>
-		/// <remarks>	When the NotificationKind is Error, Exception should always be a JobQueueException. </remarks>
 		/// <value>	A sequence of observable job completion notifications. </value>
-		IObservable<Notification<JobResult<TJobInput, TJobOutput>>> WhenJobCompletes { get; }
+		IObservable<JobResult<TJobInput, TJobOutput>> WhenJobCompletes { get; }
 
 		/// <summary>	The observable that monitors job queue empty status. </summary>
 		/// <value>	A Unit notification. </value>

@@ -5,7 +5,6 @@ using System.Threading;
 using EPS.Dynamic;
 using FakeItEasy;
 using Xunit;
-using System.Reactive;
 
 namespace EPS.Concurrency.Tests.Unit
 {
@@ -85,17 +84,17 @@ namespace EPS.Concurrency.Tests.Unit
 			Assert.True(waitResult);
 		}
 
-		private Tuple<TJobInput, TJobOutput, Notification<JobResult<TJobInput, TJobOutput>>> GetDataFromFauxJobExecution()
+		private Tuple<TJobInput, TJobOutput, JobResult<TJobInput, TJobOutput>> GetDataFromFauxJobExecution()
 		{
 			var input = A.Dummy<TJobInput>();
 			var output = A.Dummy<TJobOutput>();
 
-			Notification<JobResult<TJobInput, TJobOutput>> notification = null;
+			JobResult<TJobInput, TJobOutput> result = null;
 			TJobQueue queue = jobQueueFactory(Scheduler.Immediate);
 			var completedEvent = new ManualResetEventSlim(false);
-			queue.WhenJobCompletes.ObserveOn(Scheduler.Immediate).Subscribe(n =>
+			queue.WhenJobCompletes.ObserveOn(Scheduler.Immediate).Subscribe(r =>
 			{
-				notification = n;
+				result = r;
 				completedEvent.Set();
 			});
 			queue.Add(input, job => { return output; });
@@ -104,7 +103,7 @@ namespace EPS.Concurrency.Tests.Unit
 			completedEvent.Wait();
 			completedEvent.Wait();
 
-			return Tuple.Create(input, output, notification);			
+			return Tuple.Create(input, output, result);			
 		}
 
 		[Fact]
@@ -112,7 +111,7 @@ namespace EPS.Concurrency.Tests.Unit
 		{
 			var data = GetDataFromFauxJobExecution();
 
-			Assert.Same(data.Item1, data.Item3.Value.Input);
+			Assert.Same(data.Item1, data.Item3.Input);
 		}
 
 		[Fact]
@@ -120,7 +119,7 @@ namespace EPS.Concurrency.Tests.Unit
 		{
 			var data = GetDataFromFauxJobExecution();
 
-			Assert.Same(data.Item2, data.Item3.Value.Output);
+			Assert.Same(data.Item2, data.Item3.Output);
 		}
 		
 
@@ -163,12 +162,6 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact(Skip = "Write tests to ensure our JobQueue is working properly")]
 		public void WhenJobFails_Tests()
 		{
-		}
-
-		[Fact]
-		public void WhenJobCompletes_FailureNotificationsAlwaysContainsJobQueueExceptions()
-		{
-
 		}
 	}
 }

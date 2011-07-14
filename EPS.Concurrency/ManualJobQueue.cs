@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Concurrent;
 using System.Reactive;
+using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using System.Reactive.Concurrency;
 using System.Threading;
 
 namespace EPS.Concurrency
@@ -24,7 +24,7 @@ namespace EPS.Concurrency
 		private ConcurrentQueue<Job> queue;
 		private int runningCount;
 
-		private Subject<Notification<JobResult<TJobInput, TJobOutput>>> whenJobCompletes;
+		private Subject<JobResult<TJobInput, TJobOutput>> whenJobCompletes;
 		private Subject<Unit> whenQueueEmpty;
 
 		public ManualJobQueue()
@@ -35,7 +35,7 @@ namespace EPS.Concurrency
 		{
 			this.scheduler = scheduler;
 			queue = new ConcurrentQueue<Job>();
-			whenJobCompletes = new Subject<Notification<JobResult<TJobInput, TJobOutput>>>();
+			whenJobCompletes = new Subject<JobResult<TJobInput, TJobOutput>>();
 			whenQueueEmpty = new Subject<Unit>();
 
 			// whenQueueEmpty subscription
@@ -49,10 +49,8 @@ namespace EPS.Concurrency
 
 		#region IJobQueue Implementation
 
-		public IObservable<Notification<JobResult<TJobInput, TJobOutput>>> WhenJobCompletes
+		public IObservable<JobResult<TJobInput, TJobOutput>> WhenJobCompletes
 		{
-			//TODO: 7-14-2011 -- add in this?
-			//.Where(n => n.Kind == NotificationKind.OnCompleted || n.Kind == NotificationKind.OnError)
 			get { return whenJobCompletes.AsObservable(); }
 		}
 
@@ -102,7 +100,7 @@ namespace EPS.Concurrency
 
 			job.CompletionHandler
 			.Materialize()
-			//.Where(n => n.Kind == NotificationKind.OnCompleted || n.Kind == NotificationKind.OnError)
+			.Select(n => n.Value)
 			.Subscribe(whenJobCompletes.OnNext);
 			// pass on errors and completions
 
@@ -211,12 +209,11 @@ namespace EPS.Concurrency
 		{
 			if (error == null)
 			{
-				job.CompletionHandler.OnNext(JobResult.Create(job.Input, jobResult));
-				job.CompletionHandler.OnCompleted();
+				job.CompletionHandler.OnNext(JobResult.CreateOnCompletion(job.Input, jobResult));
 			}
 			else
 			{
-				job.CompletionHandler.OnError(new JobQueueException<TJobInput>(job.Input, error));
+				job.CompletionHandler.OnNext(JobResult.CreateOnError(job.Input, error));
 			}
 		}
 	}

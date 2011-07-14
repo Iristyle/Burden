@@ -15,6 +15,6 @@ namespace EPS.Concurrency
 		/// <param name="jobResult">	The job result. </param>
 		/// <returns>	A JobQueueAction specifying what to do about the JobResult. </returns>
 		/// <exception cref="ArgumentNullException">	Should throw on a null Notification. </exception>
-		JobQueueAction<TQueuePoison> Inspect(Notification<JobResult<TJobInput, TJobOutput>> jobResult);
+		JobQueueAction<TQueuePoison> Inspect(JobResult<TJobInput, TJobOutput> jobResult);
 	}
 }
