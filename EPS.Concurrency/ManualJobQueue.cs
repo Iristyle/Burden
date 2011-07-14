@@ -182,11 +182,10 @@ namespace EPS.Concurrency
 		{
 			try
 			{
-				IDisposable jobSubscription =
-				job.AsyncStart(job.Input).Subscribe(
-				result => OnJobCompleted(job, result, null),
-				e => OnJobCompleted(job, default(TJobOutput), e)
-				);
+				IDisposable jobSubscription = job.AsyncStart(job.Input).Subscribe(
+					result => OnJobCompleted(job, result, null),
+					e => OnJobCompleted(job, default(TJobOutput), e));
+
 				job.JobSubscription.Disposable = jobSubscription;
 
 				if (job.Cancel.IsDisposed)
@@ -208,9 +207,8 @@ namespace EPS.Concurrency
 			}
 			else
 			{
-				job.CompletionHandler.OnError(error);
+				job.CompletionHandler.OnError(new JobQueueException<TJobInput>(job.Input, error));
 			}
 		}
 	}
 }
-

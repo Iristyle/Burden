@@ -27,6 +27,7 @@
     <Compile Include="IJobResultInspector.cs" />
     <Compile Include="JobQueueAction.cs" />
     <Compile Include="JobQueueActionType.cs" />
+    <Compile Include="JobQueueException.cs" />
     <Compile Include="ManualJobQueue.cs" />
     <Compile Include="IDurableJobStorageQueue.cs" />
     <Compile Include="IJobQueue.cs" />
