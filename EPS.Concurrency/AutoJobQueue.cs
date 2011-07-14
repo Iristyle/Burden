@@ -9,6 +9,10 @@ namespace EPS.Concurrency
 		int maxConcurrent;
 
 		public AutoJobQueue(int maxConcurrent)
+			: this(Scheduler.TaskPool, maxConcurrent)
+		{ }
+
+		internal AutoJobQueue(IScheduler scheduler, int maxConcurrent)
 		{
 			if (maxConcurrent < 1)
 			{

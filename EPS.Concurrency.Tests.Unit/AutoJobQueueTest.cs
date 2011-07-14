@@ -1,20 +1,21 @@
 using System;
 using Xunit;
 using EPS.Dynamic;
+using System.Reactive.Concurrency;
 
 namespace EPS.Concurrency.Tests.Unit
 {	
 	public class AutoJobQueueTest<TJobInput, TJobOutput> :
 		IJobQueueTest<AutoJobQueue<TJobInput, TJobOutput>, TJobInput, TJobOutput>
 	{
-		public AutoJobQueueTest(Func<AutoJobQueue<TJobInput, TJobOutput>> jobQueueFactory)
+		public AutoJobQueueTest(Func<IScheduler, AutoJobQueue<TJobInput, TJobOutput>> jobQueueFactory)
 			: base(jobQueueFactory)
 		{ }
 
 		[Fact]
 		public void Add_ThrowsOnNullItemForReferenceTypesOnAutostartOverload()
 		{
-			var queue = jobQueueFactory();
+			var queue = jobQueueFactory(Scheduler.Immediate);
 			if (typeof(TJobInput).IsValueType)
 				return;
 
@@ -26,7 +27,7 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact]
 		public void Add_ThrowsOnNullAsyncStartWithAutostartOverload()
 		{
-			var queue = jobQueueFactory();
+			var queue = jobQueueFactory(Scheduler.Immediate);
 
 			Assert.Throws<ArgumentNullException>(() => queue.Add(default(TJobInput), null as Func<TJobInput, IObservable<TJobOutput>>, true));
 		}
@@ -34,7 +35,7 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact]
 		public void Add_ThrowsOnNullObservableWithAutostartOverload()
 		{
-			var queue = jobQueueFactory();
+			var queue = jobQueueFactory(Scheduler.Immediate);
 
 			Assert.Throws<ArgumentNullException>(() => queue.Add(default(TJobInput), (input) => null as IObservable<TJobOutput>, true));
 		}

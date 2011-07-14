@@ -4,6 +4,7 @@ using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Reactive.Concurrency;
 using System.Threading;
 
 namespace EPS.Concurrency
@@ -19,24 +20,30 @@ namespace EPS.Concurrency
 			public MultipleAssignmentDisposable JobSubscription;
 		}
 
-		ConcurrentQueue<Job> queue;
-		int runningCount;
+		private IScheduler scheduler;
+		private ConcurrentQueue<Job> queue;
+		private int runningCount;
 
-		Subject<Notification<JobResult<TJobInput, TJobOutput>>> whenJobCompletes;
-		Subject<TJobInput> whenQueueEmpty;
+		private Subject<Notification<JobResult<TJobInput, TJobOutput>>> whenJobCompletes;
+		private Subject<Unit> whenQueueEmpty;
 
 		public ManualJobQueue()
+			: this(Scheduler.TaskPool)
+		{ }
+
+		internal ManualJobQueue(IScheduler scheduler)
 		{
+			this.scheduler = scheduler;
 			queue = new ConcurrentQueue<Job>();
 			whenJobCompletes = new Subject<Notification<JobResult<TJobInput, TJobOutput>>>();
-			whenQueueEmpty = new Subject<TJobInput>();
+			whenQueueEmpty = new Subject<Unit>();
 
 			// whenQueueEmpty subscription
 			whenJobCompletes.Subscribe(n =>
 			{
 				int queueCount = queue.Count;
 				if (Interlocked.Decrement(ref runningCount) == 0 && queueCount == 0)
-					whenQueueEmpty.OnNext(n.Value.Input);
+					whenQueueEmpty.OnNext(new Unit());
 			});
 		}
 
@@ -47,7 +54,7 @@ namespace EPS.Concurrency
 			get { return whenJobCompletes.AsObservable(); }
 		}
 
-		public IObservable<TJobInput> WhenQueueEmpty
+		public IObservable<Unit> WhenQueueEmpty
 		{
 			get { return whenQueueEmpty.AsObservable(); }
 		}
@@ -75,6 +82,9 @@ namespace EPS.Concurrency
 			if (null == input) { throw new ArgumentNullException("input"); }
 			if (null == asyncStart) { throw new ArgumentNullException("asyncStart"); }
 
+			//Observable.
+			//Observable.
+
 			Job job = new Job()
 			{
 				AsyncStart = asyncStart,
@@ -89,7 +99,7 @@ namespace EPS.Concurrency
 			job.JobSubscription,
 			job.Cancel
 			)
-			);
+			).ObserveOn(scheduler);
 
 			job.CompletionHandler
 			.Materialize()
@@ -182,7 +192,7 @@ namespace EPS.Concurrency
 		{
 			try
 			{
-				IDisposable jobSubscription = job.AsyncStart(job.Input).Subscribe(
+				IDisposable jobSubscription = job.AsyncStart(job.Input).ObserveOn(scheduler).Subscribe(
 					result => OnJobCompleted(job, result, null),
 					e => OnJobCompleted(job, default(TJobOutput), e));
 

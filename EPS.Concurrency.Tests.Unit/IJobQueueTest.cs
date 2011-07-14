@@ -3,15 +3,17 @@ using Xunit;
 using System.Threading;
 using FakeItEasy;
 using EPS.Dynamic;
+using System.Reactive.Concurrency;
+using System.Reactive.Linq;
 
 namespace EPS.Concurrency.Tests.Unit
 {
 	public abstract class IJobQueueTest<TJobQueue, TJobInput, TJobOutput>
 		where TJobQueue : IJobQueue<TJobInput, TJobOutput>
 	{
-		protected readonly Func<TJobQueue> jobQueueFactory;
+		protected readonly Func<IScheduler, TJobQueue> jobQueueFactory;
 
-		public IJobQueueTest(Func<TJobQueue> jobQueueFactory)
+		public IJobQueueTest(Func<IScheduler, TJobQueue> jobQueueFactory)
 		{
 			this.jobQueueFactory = jobQueueFactory;
 		}
@@ -19,7 +21,7 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact]
 		public void Add_ThrowsOnNullItemForReferenceTypes()
 		{
-			TJobQueue queue = jobQueueFactory();
+			TJobQueue queue = jobQueueFactory(Scheduler.Immediate);
 			if (typeof(TJobInput).IsValueType)
 				return;
 
@@ -31,7 +33,7 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact]
 		public void Add_ThrowsOnNullAction()
 		{
-			TJobQueue queue = jobQueueFactory();
+			TJobQueue queue = jobQueueFactory(Scheduler.Immediate);
 
 			Assert.Throws<ArgumentNullException>(() => queue.Add(default(TJobInput), null as Func<TJobInput, TJobOutput>));
 		}
@@ -39,7 +41,7 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact]
 		public void Add_ThrowsOnNullItemForValueFactoryOverload()
 		{
-			TJobQueue queue = jobQueueFactory();
+			TJobQueue queue = jobQueueFactory(Scheduler.Immediate);
 
 			Assert.Throws<ArgumentNullException>(() => queue.Add(default(TJobInput), jobInput => null as IObservable<TJobOutput>));
 		}
@@ -47,42 +49,39 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact]
 		public void Add_ThrowsOnNullObservableFactory()
 		{
-			TJobQueue queue = jobQueueFactory();
+			TJobQueue queue = jobQueueFactory(Scheduler.Immediate);
 
 			Assert.Throws<ArgumentNullException>(() => queue.Add(default(TJobInput), null as Func<TJobInput, IObservable<TJobOutput>>));
 		}
 
 		[Fact]
-		public void Add_ThrowsOnNullObservable()
-		{
-			TJobQueue queue = jobQueueFactory();
-
-			Assert.Throws<ArgumentNullException>(() => queue.Add(default(TJobInput), (input) => null as IObservable<TJobOutput>));
-		}
-
-		[Fact]
 		public void Add_RunsJob()
 		{
-			TJobQueue queue = jobQueueFactory();
-			ManualResetEvent executedEvent = new ManualResetEvent(false);
-			queue.Add(default(TJobInput), job =>
-			{
-				executedEvent.Set();
-				return null;
-			});
+			TJobQueue queue = jobQueueFactory(Scheduler.Immediate);
+			var jobExecuted = new ManualResetEventSlim(false);
 
-			Assert.True(executedEvent.WaitOne(TimeSpan.FromSeconds(1).Milliseconds));
+			queue.Add(A.Dummy<TJobInput>(), job =>
+			{
+				jobExecuted.Set();
+				return A.Dummy<TJobOutput>();
+			});
+			queue.StartNext();
+
+			bool waitResult = jobExecuted.Wait(TimeSpan.FromSeconds(1));
+			Assert.True(waitResult);
 		}
 
 		[Fact]
 		public void Add_RunsJob_CallsWhenJobCompletes()
 		{
-			TJobQueue queue = jobQueueFactory();
-			ManualResetEvent completedEvent = new ManualResetEvent(false);
-			queue.WhenJobCompletes.Subscribe((notification) => completedEvent.Set());
-			queue.Add(default(TJobInput), job => { return null; });
+			TJobQueue queue = jobQueueFactory(Scheduler.Immediate);
+			var completedEvent = new ManualResetEventSlim(false);
+			queue.WhenJobCompletes.ObserveOn(Scheduler.Immediate).Subscribe((notification) => completedEvent.Set());
+			queue.Add(A.Dummy<TJobInput>(), job => { return A.Dummy<TJobOutput>(); });
+			queue.StartNext();
 
-			Assert.True(completedEvent.WaitOne(TimeSpan.FromSeconds(1).Milliseconds));
+			bool waitResult = completedEvent.Wait(TimeSpan.FromSeconds(1));
+			Assert.True(waitResult);
 		}
 		
 
@@ -130,6 +129,7 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact]
 		public void WhenJobCompletes_FailureNotificationsAlwaysContainsJobQueueExceptions()
 		{
+
 		}
 	}
 }

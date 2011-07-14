@@ -22,8 +22,8 @@ namespace EPS.Concurrency
 		IObservable<Notification<JobResult<TJobInput, TJobOutput>>> WhenJobCompletes { get; }
 
 		/// <summary>	The observable that monitors job queue empty status. </summary>
-		/// <value>	A sequence of job inputs that can result in an empty status. </value>
-		IObservable<TJobInput> WhenQueueEmpty { get; }
+		/// <value>	A Unit notification. </value>
+		IObservable<Unit> WhenQueueEmpty { get; }
 
 		/// <summary>	Gets the number of running jobs. </summary>
 		/// <value>	The number of running jobs. </value>
