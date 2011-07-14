@@ -5,6 +5,7 @@ using System.Threading;
 using EPS.Dynamic;
 using FakeItEasy;
 using Xunit;
+using System.Reactive;
 
 namespace EPS.Concurrency.Tests.Unit
 {
@@ -82,6 +83,44 @@ namespace EPS.Concurrency.Tests.Unit
 
 			bool waitResult = completedEvent.Wait(TimeSpan.FromSeconds(1));
 			Assert.True(waitResult);
+		}
+
+		private Tuple<TJobInput, TJobOutput, Notification<JobResult<TJobInput, TJobOutput>>> GetDataFromFauxJobExecution()
+		{
+			var input = A.Dummy<TJobInput>();
+			var output = A.Dummy<TJobOutput>();
+
+			Notification<JobResult<TJobInput, TJobOutput>> notification = null;
+			TJobQueue queue = jobQueueFactory(Scheduler.Immediate);
+			var completedEvent = new ManualResetEventSlim(false);
+			queue.WhenJobCompletes.ObserveOn(Scheduler.Immediate).Subscribe(n =>
+			{
+				notification = n;
+				completedEvent.Set();
+			});
+			queue.Add(input, job => { return output; });
+			queue.StartNext();
+
+			completedEvent.Wait();
+			completedEvent.Wait();
+
+			return Tuple.Create(input, output, notification);			
+		}
+
+		[Fact]
+		public void WhenJobCompletes_NotificationContainsOriginalInput()
+		{
+			var data = GetDataFromFauxJobExecution();
+
+			Assert.Same(data.Item1, data.Item3.Value.Input);
+		}
+
+		[Fact]
+		public void WhenJobCompletes_NotificationContainsOriginalOutput()
+		{
+			var data = GetDataFromFauxJobExecution();
+
+			Assert.Same(data.Item2, data.Item3.Value.Output);
 		}
 		
 

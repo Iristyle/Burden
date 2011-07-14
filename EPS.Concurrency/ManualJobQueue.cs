@@ -51,6 +51,8 @@ namespace EPS.Concurrency
 
 		public IObservable<Notification<JobResult<TJobInput, TJobOutput>>> WhenJobCompletes
 		{
+			//TODO: 7-14-2011 -- add in this?
+			//.Where(n => n.Kind == NotificationKind.OnCompleted || n.Kind == NotificationKind.OnError)
 			get { return whenJobCompletes.AsObservable(); }
 		}
 
@@ -82,9 +84,6 @@ namespace EPS.Concurrency
 			if (null == input) { throw new ArgumentNullException("input"); }
 			if (null == asyncStart) { throw new ArgumentNullException("asyncStart"); }
 
-			//Observable.
-			//Observable.
-
 			Job job = new Job()
 			{
 				AsyncStart = asyncStart,
@@ -103,7 +102,7 @@ namespace EPS.Concurrency
 
 			job.CompletionHandler
 			.Materialize()
-			.Where(n => n.Kind == NotificationKind.OnCompleted || n.Kind == NotificationKind.OnError)
+			//.Where(n => n.Kind == NotificationKind.OnCompleted || n.Kind == NotificationKind.OnError)
 			.Subscribe(whenJobCompletes.OnNext);
 			// pass on errors and completions
 
