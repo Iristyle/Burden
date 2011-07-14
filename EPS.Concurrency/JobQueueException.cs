@@ -1,8 +1,4 @@
 using System;
-using System.Reactive;
-using System.Diagnostics;
-using System.Globalization;
-using System.Collections.Generic;
 
 namespace EPS.Concurrency
 {
@@ -13,12 +9,16 @@ namespace EPS.Concurrency
 	{
 		public TJobInput Input { get; private set; }
 			
-		/// <summary>
-		/// Initializes a new instance of the JobQueueException class.
-		/// </summary>
+		/// <summary>	Initializes a new instance of the JobQueueException class, where an input is expected. </summary>
+		/// <remarks>	7/14/2011. </remarks>
+		/// <exception cref="ArgumentNullException">	Thrown when one or more required arguments are null. </exception>
+		/// <param name="input">		 	The input. </param>
+		/// <param name="innerException">	The inner exception. </param>
 		public JobQueueException(TJobInput input, Exception innerException)
 			:base("The execution of job with given input failed", innerException)
 		{
+			if (null == input) { throw new ArgumentNullException("input"); }
+
 			Input = input;
 		}
 	}
