@@ -59,7 +59,11 @@ namespace EPS.Concurrency
 				//no need to check 
 				else if (queueAction.ActionType == JobQueueActionType.Poison)
 				{
-					durableJobStorage.Poison(notification.Value.Input, queueAction.QueuePoison);
+					//look to our JobQueueException first for input, then degrade to the jobResult if it has the info we need
+					var jobException = notification.Exception as JobQueueException<TJobInput>;
+					TJobInput input = null != jobException ? jobException.Input : notification.HasValue ? notification.Value.Input : default(TJobInput);
+
+					durableJobStorage.Poison(input, queueAction.QueuePoison);
 				}
 				else if (queueAction.ActionType == JobQueueActionType.Complete)
 				{
