@@ -33,7 +33,7 @@ namespace EPS.Concurrency.Tests.Unit
 		{
 			var jobStorage = A.Fake<IDurableJobStorageQueue<Incoming, Incoming>>();
 			var test = new DurableJobStorageMonitor<Incoming, Incoming>(jobStorage, 20);
-			Assert.Throws<ArgumentOutOfRangeException>(() => new DurableJobStorageMonitor<Incoming, Incoming>(jobStorage, test.MaxQueueItemsAllowed + 1));
+			Assert.Throws<ArgumentOutOfRangeException>(() => new DurableJobStorageMonitor<Incoming, Incoming>(jobStorage, test.MaxQueueItemsToPublishPerInterval + 1));
 		}
 
 		[Fact]
