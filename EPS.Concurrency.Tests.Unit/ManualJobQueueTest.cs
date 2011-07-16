@@ -1,8 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using Xunit;
-using Xunit.Extensions;
 using System.Reactive.Concurrency;
 
 namespace EPS.Concurrency.Tests.Unit
@@ -17,12 +13,17 @@ namespace EPS.Concurrency.Tests.Unit
 	}
 
 
-	public class IntJobQueueTest : ManualJobQueueTest<int, int>
+	public class ValueTypeManualJobQueueTest : ManualJobQueueTest<int, int>
 	{
-		public IntJobQueueTest()
+		public ValueTypeManualJobQueueTest()
 			: base ((scheduler) => new ManualJobQueue<int, int>(scheduler))
 		{ }
+	}
 
-
+	public class ReferenceTypeManualJobQueueTest : ManualJobQueueTest<object, object>
+	{
+		public ReferenceTypeManualJobQueueTest()
+			: base((scheduler) => new ManualJobQueue<object, object>(scheduler))
+		{ }
 	}
 }
