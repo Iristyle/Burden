@@ -18,15 +18,21 @@ namespace EPS.Concurrency
 	{
 		private IDisposable jobCompleted;
 
-		/// <summary>	Constructs a new instance. </summary>
+		/// <summary>
+		/// Constructs a new instance that listens to completion notifications on Scheduler.TaskPool or Scheduler.ThreadPool when on Silverlight .
+		/// </summary>
 		/// <remarks>	7/9/2011. </remarks>
 		/// <param name="jobCompletionNotifications">	The job completion notification stream. </param>
 		/// <param name="jobResultInspector">		 	The job result inspector. </param>
 		/// <param name="durableJobStorage">		 	The durable job storage. </param>
 		public JournalingJobResultQueue(IObservable<JobResult<TJobInput, TJobOutput>> jobCompletionNotifications, 
 			IJobResultInspector<TJobInput, TJobOutput, TQueuePoison> jobResultInspector,
-			IDurableJobStorageQueue<TJobInput, TQueuePoison> durableJobStorage) :
-			this(jobCompletionNotifications, jobResultInspector, durableJobStorage, LogManager.GetCurrentClassLogger(), Scheduler.TaskPool)
+			IDurableJobStorageQueue<TJobInput, TQueuePoison> durableJobStorage)
+#if SILVERLIGHT
+			: this(jobCompletionNotifications, jobResultInspector, durableJobStorage, LogManager.GetCurrentClassLogger(), Scheduler.ThreadPool)
+#else
+			: this(jobCompletionNotifications, jobResultInspector, durableJobStorage, LogManager.GetCurrentClassLogger(), Scheduler.TaskPool)
+#endif			
 		{ }
 
 		internal JournalingJobResultQueue(IObservable<JobResult<TJobInput, TJobOutput>> jobCompletionNotifications, 
