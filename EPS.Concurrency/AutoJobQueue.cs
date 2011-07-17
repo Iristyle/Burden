@@ -37,13 +37,13 @@ namespace EPS.Concurrency
 		}
 
 		/// <summary>	Adds a job matching a given input / output typing and an input value. </summary>
+		/// <remarks>	7/17/2011. </remarks>
+		/// <exception cref="ArgumentNullException">	Thrown when asyncStart is null. </exception>
 		/// <param name="input">	 	The input. </param>
 		/// <param name="asyncStart">	The asynchronous observable action to perform. </param>
 		/// <returns>	A sequence of Observable JobResult instances. </returns>
 		public override IObservable<JobResult<TJobInput, TJobOutput>> Add(TJobInput input, Func<TJobInput, IObservable<TJobOutput>> asyncStart)
 		{
-			if (null == asyncStart) { throw new ArgumentNullException("asyncStart"); }
-
 			return Add(input, asyncStart, true);
 		}
 
