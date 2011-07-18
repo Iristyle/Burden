@@ -183,39 +183,36 @@ namespace EPS.Concurrency
 		public int StartUpTo(int maxConcurrentlyRunning)
 		{
 			int started = 0;
-			for (; ; )
+			while (true)
 			{
-				for (; ; )
+				int running = 0;
+
+				do // test and increment with compare and swap
 				{
-					int running = 0;
+					running = runningCount;
+					if (running >= maxConcurrentlyRunning)
+						return started;
+				}
+				while (Interlocked.CompareExchange(ref runningCount, running + 1, running) != running);
 
-					do // test and increment with compare and swap
-					{
-						running = runningCount;
-						if (running >= maxConcurrentlyRunning)
-							return started;
-					}
-					while (Interlocked.CompareExchange(ref runningCount, running + 1, running) != running);
+				Job job;
+				if (TryDequeNextJob(out job))
+				{
+					StartJob(job);
+					++started;
+				}
+				else
+				{
+					// dequeing job failed but we already incremented running count
+					Interlocked.Decrement(ref runningCount);
 
-					Job job;
-					if (TryDequeNextJob(out job))
+					// ensure that no other thread queued an item and did not start it
+					// because the running count was too high
+					if (queue.Count == 0)
 					{
-						StartJob(job);
-						++started;
-					}
-					else
-					{
-						// dequeing job failed but we already incremented running count
-						Interlocked.Decrement(ref runningCount);
-
-						// ensure that no other thread queued an item and did not start it
-						// because the running count was too high
-						if (queue.Count == 0)
-						{
-							// if there is nothing in the queue after the decrement 
-							// we can safely return
-							return started;
-						}
+						// if there is nothing in the queue after the decrement 
+						// we can safely return
+						return started;
 					}
 				}
 			}
