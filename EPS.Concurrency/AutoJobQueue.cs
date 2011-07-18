@@ -36,7 +36,7 @@ namespace EPS.Concurrency
 			this.maxConcurrent = maxConcurrent;
 		}
 
-		/// <summary>	Adds a job matching a given input / output typing and an input value. </summary>
+		/// <summary>	Adds a job matching a given input / output typing and an input value, and will auto-start the job, running only up to the maxConcurrent number of jobs specified. </summary>
 		/// <remarks>	7/17/2011. </remarks>
 		/// <exception cref="ArgumentNullException">	Thrown when asyncStart is null. </exception>
 		/// <param name="input">	 	The input. </param>
@@ -44,23 +44,10 @@ namespace EPS.Concurrency
 		/// <returns>	A sequence of Observable JobResult instances. </returns>
 		public override IObservable<JobResult<TJobInput, TJobOutput>> Add(TJobInput input, Func<TJobInput, IObservable<TJobOutput>> asyncStart)
 		{
-			return Add(input, asyncStart, true);
-		}
-
-		/// <summary>	Adds a job matching a given input / output typing and an input value, with a value denoting if it should be auto-started. </summary>
-		/// <remarks>	7/15/2011. </remarks>
-		/// <exception cref="ArgumentNullException">	Thrown when the asyncStart is null. </exception>
-		/// <param name="input">	 	The input. </param>
-		/// <param name="asyncStart">	The asynchronous observable action to perform. </param>
-		/// <param name="autoStart"> 	true to automatic start. </param>
-		/// <returns>	A sequence of Observable JobResult instances. </returns>
-		public IObservable<JobResult<TJobInput, TJobOutput>> Add(TJobInput input, Func<TJobInput, IObservable<TJobOutput>> asyncStart, bool autoStart)
-		{
 			if (null == asyncStart) { throw new ArgumentNullException("asyncStart"); }
 
 			var whenCompletes = base.Add(input, asyncStart);
-			if (autoStart)
-				StartUpTo(maxConcurrent);
+			StartUpTo(maxConcurrent);
 			return whenCompletes;
 		}
 
