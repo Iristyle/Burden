@@ -522,7 +522,7 @@ namespace EPS.Concurrency.Tests.Unit
 		}
 
 		[Fact]
-		public void StartUpTo_ExecutesJobsInOrder()
+		public void StartNext_ExecutesJobsInOrder()
 		{
 			//easy to compare object references for ordering, impossible for value types i'm afraid
 			if (typeof(TJobInput).IsValueType)
@@ -548,7 +548,12 @@ namespace EPS.Concurrency.Tests.Unit
 
 			queue.WhenQueueEmpty.ObserveOn(Scheduler.Immediate)
 				.Subscribe(r => emptied.Set());
-			queue.StartUpTo(jobCount);
+			
+			for (int i = 0; i < jobCount; i++)
+			{
+				queue.StartNext();
+			}
+			
 			emptied.Wait(TimeSpan.FromSeconds(10));
 
 			Assert.True(inputs.SequenceEqual(inputsExecuted, new GenericEqualityComparer<TJobInput>((a, b) => object.ReferenceEquals(a, b))));
