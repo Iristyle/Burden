@@ -96,7 +96,7 @@ namespace EPS.Concurrency.Tests.Unit
 			for (int j = 0; j < iterations; j++)
 			{
 				//wait for all jobs to start, then reset counter, allow them to complete, and reset allJobsLaunched
-				allJobsLaunched.Wait();
+				allJobsLaunched.Wait(TimeSpan.FromSeconds(5));
 					//throw new ApplicationException();
 				Interlocked.Exchange(ref jobCounter, 0);
 
@@ -106,7 +106,7 @@ namespace EPS.Concurrency.Tests.Unit
 				status.PrimaryJobPauser.Set();
 
 				//wait until all the jobs have received it before resetting the pauser, which will hold the next set of jobs as they're pumped in
-				firstGateCrossedByAllJobs.Wait();
+				firstGateCrossedByAllJobs.Wait(TimeSpan.FromSeconds(5));
 				firstGateCrossedByAllJobs.Reset();
 				status.PrimaryJobPauser.Reset();
 
@@ -118,7 +118,7 @@ namespace EPS.Concurrency.Tests.Unit
 				{
 					status.SecondaryJobPauser.Set();
 					//wait again, this time for the second gate
-					secondGateCrossedByAllJobs.Wait();
+					secondGateCrossedByAllJobs.Wait(TimeSpan.FromSeconds(5));
 					secondGateCrossedByAllJobs.Reset();
 
 					Interlocked.Exchange(ref secondGateCounter, 0);
