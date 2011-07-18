@@ -21,39 +21,31 @@ namespace EPS.Concurrency.Tests.Unit
 		}
 
 		[Fact]
-		public void Inspect_ReturnsNonNullResultOnNonNullInput()
+		public void Inspect_ReturnsNonNullResult_OnNonNullInput()
 		{
 			var result = factory().Inspect(JobResult.CreateOnCompletion(A.Dummy<TJobInput>(), A.Dummy<TJobOutput>()));
 
 			Assert.NotNull(result);
 		}
 
-		[Fact]
-		public void Inspect_ReturnsUnknownJobResult_WhenNotificationKindOnError_WithNullJobResult()
+		private JobQueueAction<TQueuePoison> GetErrorInspectionResults(Exception exception)
 		{
-			var jobResult = JobResult.CreateOnError(A.Dummy<TJobInput>(), new ArgumentException());
-			var result = factory().Inspect(jobResult);
-
-			Assert.Equal(JobQueueActionType.Unknown, result.ActionType);
-		}
-
-		[Fact]
-		public void Inspect_ReturnsPoisonJobResult_WhenNotificationKindOnError()
-		{
-			//fakeiteasy should attach a faked up TJobInput to the Error
 			var jobResult = JobResult.CreateOnError(A.Dummy<TJobInput>(), new ArgumentNullException());
-			var result = factory().Inspect(jobResult);
-
-			Assert.Equal(JobQueueActionType.Poison, result.ActionType);		
+			return factory().Inspect(jobResult);
 		}
 
 		[Fact]
-		public void Inspect_ReturnsCompleteJobResult_WhenNotificationComplete()
+		public void Inspect_ReturnsPoisonQueueAction_ForErrorJobResult_WithNonNullJobResult_NonNullException()
 		{
-			var jobResult = JobResult.CreateOnCompletion(A.Dummy<TJobInput>(), A.Dummy<TJobOutput>());
-			var result = factory().Inspect(jobResult);
+			var result = GetErrorInspectionResults(new ArgumentNullException());
+			Assert.Equal(JobQueueActionType.Poison, result.ActionType);
+		}
 
-			Assert.Equal(JobQueueActionType.Complete, result.ActionType);
+		[Fact]
+		public void Inspect_ReturnsPoisonQueueAction_ForErrorJobResult_WithNonNullJobResult_NullException()
+		{
+			var result = GetErrorInspectionResults(null);
+			Assert.Equal(JobQueueActionType.Poison, result.ActionType);
 		}
 	}
 }
