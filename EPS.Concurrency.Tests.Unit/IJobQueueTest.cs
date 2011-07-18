@@ -316,6 +316,95 @@ namespace EPS.Concurrency.Tests.Unit
 			jobLock.Set();
 		}
 
+		[Theory]
+		[InlineData(20, 5)]
+		[InlineData(1, 1)]
+		[InlineData(1, 2)]
+		[InlineData(30, 30)]
+		public void StartUpTo_ReturnedCount_MatchesActualRunningJobCount(int fakeJobsToCreate, int maxConcurrent)
+		{
+			var jobPauser = new ManualResetEventSlim(false);
+
+			var queue = jobQueueFactory(Scheduler.Immediate);
+			for (int j = 0; j < fakeJobsToCreate; j++)
+			{
+				queue.Add(A.Dummy<TJobInput>(), input =>
+				{
+					jobPauser.Wait();
+					return A.Dummy<TJobOutput>();
+				});
+			}
+
+			int started = queue.StartUpTo(maxConcurrent);
+
+			Assert.Equal(queue.RunningCount, started);
+			queue.CancelOutstandingJobs();
+			jobPauser.Set();
+		}
+
+
+		[Theory]
+		[InlineData(20, 5)]
+		[InlineData(1, 1)]
+		[InlineData(1, 2)]
+		public void StartUpTo_CalledMultipleTimes_DoesNotStartNewJobs_WhenMaxConcurrentAlreadyRunning(int fakeJobsToCreate, int maxConcurrent)
+		{
+			var jobPauser = new ManualResetEventSlim(false);
+			var queue = NewQueueWithPausedJobs(fakeJobsToCreate, maxConcurrent, jobPauser);
+
+			//maxConcurrent jobs are already running, so this should not launch anything new
+			int newJobsLaunched = 0;
+			for (int i = 0; i < 20; i++)
+			{
+				newJobsLaunched += queue.StartUpTo(maxConcurrent);
+			}
+
+			Assert.Equal(0, newJobsLaunched);
+			queue.CancelOutstandingJobs();
+
+			jobPauser.Set();
+		}
+
+		[Theory]
+		[InlineData(20, 5)]
+		[InlineData(1, 1)]
+		[InlineData(1, 2)]
+		[InlineData(4, 2)]
+		public void StartUpTo_CalledMultipleTimesToSimulateRaceConditions_DoesNotIncreaseConcurrentlyExecutingJobs(int fakeJobsToCreate, int maxConcurrent)
+		{
+			var jobPauser = new ManualResetEventSlim(false);
+			var queue = NewQueueWithPausedJobs(fakeJobsToCreate, maxConcurrent, jobPauser);
+
+			int completedCount = 0;
+			var completed = new ManualResetEventSlim(false);
+			queue.WhenJobCompletes.SubscribeOn(Scheduler.Immediate).Subscribe(result => 
+				{
+					if (Interlocked.Increment(ref completedCount) == Math.Min(fakeJobsToCreate, maxConcurrent))
+						completed.Set();
+				});
+
+			//release the pending jobs, and wait for them to finish
+			jobPauser.Set();
+			if (!completed.Wait(TimeSpan.FromSeconds(2)))
+				throw new Exception("Jobs never completed");
+
+			int newJobsLaunched = 0;
+			jobPauser.Reset();
+
+			//call StartUpTo successively to try to simulate a race conditions...
+			for (int i = 0; i < 20; i++)
+			{
+				newJobsLaunched += queue.StartUpTo(maxConcurrent);
+			}
+
+			int shouldHaveCreated = Math.Min(Math.Max(fakeJobsToCreate - maxConcurrent, 0), maxConcurrent);
+			Assert.Equal(shouldHaveCreated, newJobsLaunched);
+
+			queue.CancelOutstandingJobs();
+			jobPauser.Set();
+		}
+
+
 		private List<JobResult<TJobInput, TJobOutput>> GetJobCancellations(int fakeJobsToCreate, int maxConcurrent, ManualResetEventSlim jobWaitPrimitive)
 		{
 			ManualResetEventSlim allCancellationsReceived = new ManualResetEventSlim(false);
@@ -464,6 +553,7 @@ namespace EPS.Concurrency.Tests.Unit
 
 			Assert.True(inputs.SequenceEqual(inputsExecuted, new GenericEqualityComparer<TJobInput>((a, b) => object.ReferenceEquals(a, b))));
 		}
+
 
 		class NotificationCounts
 		{
