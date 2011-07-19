@@ -3,65 +3,77 @@ using System.Collections.Generic;
 using System.Linq;
 using EPS.Dynamic;
 using EPS.Utility;
-using Xunit;
-using Xunit.Extensions;
 using FakeItEasy;
+using Ploeh.AutoFixture;
+using Xunit;
 
 namespace EPS.Concurrency.Tests.Unit
 {
 	public abstract class IDurableJobStorageQueueTest<T, TQueue, TQueuePoison>
-		where T: IDurableJobStorageQueue<TQueue, TQueuePoison>		
+		where T: IDurableJobStorageQueue<TQueue, TQueuePoison>
 	{
-		private readonly Func<T> jobStorageFactory;
+		protected Fixture fixture = new Fixture();
+		protected readonly Func<T> jobStorageFactory;
+		protected readonly Func<TQueue, TQueuePoison> poisonConverter;
 
-		public IDurableJobStorageQueueTest(Func<T> jobStorageFactory)
+		public IDurableJobStorageQueueTest(Func<T> jobStorageFactory, Func<TQueue, TQueuePoison> poisonConverter)
 		{
-			this.jobStorageFactory = jobStorageFactory;
+			this.jobStorageFactory = () =>
+			{
+				var instance = jobStorageFactory();
+				ClearAllQueues(instance);
+				return instance;
+			};
+			this.poisonConverter = poisonConverter;
 		}
-
-		/*
-		protected static IEnumerable<object[]> QueueItems 
-		{
-			get { throw new ApplicationException("Must be overridden"); } 
-		}
-
-		protected static IEnumerable<object[]> QueueItemLists
-		{
-			get { throw new ApplicationException("Must be overridden"); }
-		}
-
-		protected static IEnumerable<object[]> PoisonQueueItems
-		{
-			get { throw new ApplicationException("Must be overridden"); }
-		}
-
-		protected static IEnumerable<object[]> BuildPoisonQueueItems
-		{
-			get { throw new ApplicationException("Must be overridden"); }
-		}
-		*/
 
 		protected void ClearAllQueues(IDurableJobStorageQueue<TQueue, TQueuePoison> storage)
 		{
 			SlideItemsToPending(storage);
+			Assert.Empty(storage.GetQueued());
+
 			foreach (var item in storage.GetPending())
 			{
-				storage.Complete(item);
+				storage.Complete(item);				
 			}
+			Assert.Empty(storage.GetPending());				
 
 			foreach (var item in storage.GetPoisoned())
 			{
-				storage.Delete(item);
+				storage.Delete(item);				
 			}
+			Assert.Empty(storage.GetPoisoned());
 		}
 
-		[Theory]
-		[PropertyData("QueueItems")]
-		public void Queue_DoesNotThrow(TQueue item)
+		protected List<TQueue> SlideItemsToPending(IDurableJobStorageQueue<TQueue, TQueuePoison> jobStorage)
+		{
+			List<TQueue> items = new List<TQueue>();
+			while (true)
+			{
+				TQueue item = jobStorage.TransitionNextQueuedItemToPending();
+
+				if (typeof(TQueue).IsValueType)
+				{
+					if (default(TQueue).Equals(item))
+						break;
+				}
+				else
+				{
+					if (object.Equals(null, item))
+						break;
+				}
+
+				items.Add(item);
+			}
+
+			return items;
+		}
+
+		[Fact]
+		public void Queue_DoesNotThrow_NonNullItem()
 		{
 			var storage = jobStorageFactory();
-
-			Assert.DoesNotThrow(() => storage.Queue(item));
+			Assert.DoesNotThrow(() => storage.Queue(fixture.CreateAnonymous<TQueue>()));
 		}
 
 		[Fact]
@@ -76,52 +88,46 @@ namespace EPS.Concurrency.Tests.Unit
 			Assert.Throws<ArgumentNullException>(() => storage.Queue(item));
 		}
 
-		[Theory]
-		[PropertyData("QueueItems")]
-		public void Queue_DoesNotModifyPendingList(TQueue item)
+		[Fact]
+		public void Queue_DoesNotModifyPendingList()
 		{
 			var storage = jobStorageFactory();
-			ClearAllQueues(storage);
-			storage.Queue(item);
+			storage.Queue(fixture.CreateAnonymous<TQueue>());
 
 			Assert.Empty(storage.GetPending());
 		}
 
-		[Theory]
-		[PropertyData("QueueItems")]
-		public void Queue_DoesNotModifyPoisonedList(TQueue item)
+		[Fact]
+		public void Queue_DoesNotModifyPoisonedList()
 		{
 			var storage = jobStorageFactory();
-			ClearAllQueues(storage);
-			storage.Queue(item);
+			storage.Queue(fixture.CreateAnonymous<TQueue>());
 
 			Assert.Empty(storage.GetPoisoned());
 		}
 
-		[Theory]
-		[PropertyData("QueueItemLists")]
-		public void TransitionNextQueuedItemToPending_PreservesOrderingInPendingList(IEnumerable<TQueue> queueItems)
+		[Fact]
+		public void TransitionNextQueuedItemToPending_PreservesOrderingInPendingList()
 		{
 			var storage = jobStorageFactory();
-			ClearAllQueues(storage);
 
-			foreach (var item in queueItems)
+			var items = fixture.CreateMany<TQueue>(15).ToList();
+			foreach (var item in items)
 			{
 				storage.Queue(item);
 				storage.TransitionNextQueuedItemToPending();
 			}
 
-			Assert.True(queueItems.SequenceEqual(storage.GetPending(), GenericEqualityComparer<TQueue>.ByAllMembers()));
+			Assert.True(items.SequenceEqual(storage.GetPending(), GenericEqualityComparer<TQueue>.ByAllMembers()));
 		}
 
-		[Theory]
-		[PropertyData("QueueItemLists")]
-		public void TransitionNextQueuedItemToPending_ProperlyRemovesItemFromQueuedList(IEnumerable<TQueue> queueItems)
+		[Fact]
+		public void TransitionNextQueuedItemToPending_ProperlyRemovesItemFromQueuedList()
 		{
 			var storage = jobStorageFactory();
-			ClearAllQueues(storage);
 
-			foreach (var item in queueItems)
+			var items = fixture.CreateMany<TQueue>(15).ToList();
+			foreach (var item in items)
 			{
 				storage.Queue(item);
 				storage.TransitionNextQueuedItemToPending();
@@ -130,14 +136,13 @@ namespace EPS.Concurrency.Tests.Unit
 			Assert.Empty(storage.GetQueued());
 		}
 
-		[Theory]
-		[PropertyData("QueueItemLists")]
-		public void TransitionNextQueuedItemToPending_DoesNotModifyPoisonedList(IEnumerable<TQueue> queueItems)
+		[Fact]
+		public void TransitionNextQueuedItemToPending_DoesNotModifyPoisonedList()
 		{
 			var storage = jobStorageFactory();
-			ClearAllQueues(storage);
 
-			foreach (var item in queueItems)
+			var items = fixture.CreateMany<TQueue>(15).ToList();
+			foreach (var item in items)
 			{
 				storage.Queue(item);
 				storage.TransitionNextQueuedItemToPending();
@@ -150,18 +155,16 @@ namespace EPS.Concurrency.Tests.Unit
 		public void TransitionNextQueuedItemToPending_ReturnsNullOnEmptyQueueList()
 		{
 			var storage = jobStorageFactory();
-			ClearAllQueues(storage);
 
 			Assert.Null(storage.TransitionNextQueuedItemToPending());
 		}
 
-		[Theory]
-		[PropertyData("QueueItemLists")]
-		public void ResetAllPendingToQueued_PreservesOriginalOrder(IEnumerable<TQueue> queueItems)
+		[Fact]
+		public void ResetAllPendingToQueued_PreservesOriginalOrder()
 		{
 			var storage = jobStorageFactory();
-			ClearAllQueues(storage);
 
+			var queueItems = fixture.CreateMany<TQueue>(15).ToList();
 			foreach (var item in queueItems)
 				storage.Queue(item);
 
@@ -172,23 +175,10 @@ namespace EPS.Concurrency.Tests.Unit
 			Assert.True(queueItems.SequenceEqual(items, GenericEqualityComparer<TQueue>.ByAllMembers()));
 		}
 
-		protected IEnumerable<TQueue> SlideItemsToPending(IDurableJobStorageQueue<TQueue, TQueuePoison> jobStorage)
-		{
-			while (true)
-			{
-				TQueue item = jobStorage.TransitionNextQueuedItemToPending();
-				if (!item.Equals(default(TQueue)))
-					yield return item;
-				else
-					yield break;
-			}
-		}
-
 		[Fact]
 		public void ResetAllPendingToQueued_DoesNotThrowOnEmptyPendingList()
 		{
 			var storage = jobStorageFactory();
-			ClearAllQueues(storage);
 
 			Assert.DoesNotThrow(() => storage.ResetAllPendingToQueued());
 		}
@@ -217,53 +207,50 @@ namespace EPS.Concurrency.Tests.Unit
 			Assert.Throws<ArgumentNullException>(() => storage.Poison(A.Dummy<TQueue>(), item));
 		}
 
-		[Theory]
-		[PropertyData("PoisonQueueItems")]
-		public void Poison_ThrowsOnMissingItem(Tuple<TQueue, TQueuePoison> queueItem)
+		[Fact]
+		public void Poison_ReturnsFalse_OnMissingItem()
 		{
 			var storage = jobStorageFactory();
-			ClearAllQueues(storage);
 
-			Assert.Throws<ArgumentException>(() => storage.Poison(queueItem.Item1, queueItem.Item2));
+			Assert.False(storage.Poison(fixture.CreateAnonymous<TQueue>(), A.Dummy<TQueuePoison>()));
 		}
 
-		[Theory]
-		[PropertyData("PoisonQueueItems")]
-		public void Poison_ThrowsOnQueuedItem(Tuple<TQueue, TQueuePoison> queueItem)
+		[Fact]
+		public void Poison_ReturnsFalse_OnQueuedItem()
 		{
 			var storage = jobStorageFactory();
-			ClearAllQueues(storage);
 
-			storage.Queue(queueItem.Item1);
+			var item = fixture.CreateAnonymous<TQueue>();
+			storage.Queue(item);
 
-			Assert.Throws<ArgumentException>(() => storage.Poison(queueItem.Item1, queueItem.Item2));
+			Assert.False(storage.Poison(item, A.Dummy<TQueuePoison>()));
 		}
 
-		[Theory]
-		[PropertyData("PoisonQueueItems")]
-		public void Poison_DoesNotThrowOnPendingItem(Tuple<TQueue, TQueuePoison> queueItem)
+		[Fact]
+		public void Poison_ReturnsTrue_OnPendingItem()
 		{
 			var storage = jobStorageFactory();
-			ClearAllQueues(storage);
 
-			storage.Queue(queueItem.Item1);
+			var item = fixture.CreateAnonymous<TQueue>();
+			storage.Queue(item);
 			storage.TransitionNextQueuedItemToPending();
 
-			Assert.DoesNotThrow(() => storage.Poison(queueItem.Item1, queueItem.Item2));
+			Assert.True(storage.Poison(item, poisonConverter(item)));
 		}
 
-		[Theory]
-		[PropertyData("PoisonQueueItems")]
-		public void Poison_GetPoisoned_QueuesMatch(Tuple<TQueue, TQueuePoison> queueItem)
+		[Fact]
+		public void Poison_GetPoisoned_QueuesMatch()
 		{
 			var storage = jobStorageFactory();
-			ClearAllQueues(storage);
 
-			storage.Queue(queueItem.Item1);
+			var item = fixture.CreateAnonymous<TQueue>();
+			storage.Queue(item);
 			storage.TransitionNextQueuedItemToPending();
-			storage.Poison(queueItem.Item1, queueItem.Item2);
+			var poison = poisonConverter(item);
+			storage.Poison(item, poison);
 
-			Assert.True(storage.GetPoisoned().SequenceEqual(new[] { queueItem.Item2 }, GenericEqualityComparer<TQueuePoison>.ByAllMembers()));
+			Assert.True(storage.GetPoisoned().SequenceEqual(new [] { poison }, GenericEqualityComparer<TQueuePoison>.
+			ByAllMembers()));
 		}
 
 		[Fact]
@@ -276,68 +263,84 @@ namespace EPS.Concurrency.Tests.Unit
 
 			var item = (null as object).Cast<TQueuePoison>();
 			Assert.Throws<ArgumentNullException>(() => storage.Delete(item));
-
 		}
 
-		[Theory]
-		[PropertyData("PoisonQueueItems")]
-		public void Delete_ThrowsOnMissingItem(Tuple<TQueue, TQueuePoison> queueItem)
+		[Fact]
+		public void Delete_ReturnsFalseOnMissingItem()
 		{
 			var storage = jobStorageFactory();
-			ClearAllQueues(storage);
 
-			Assert.Throws<ArgumentException>(() => storage.Delete(queueItem.Item2));
+			Assert.False(storage.Delete(fixture.CreateAnonymous<TQueuePoison>()));
 		}
 
-		[Theory]
-		[PropertyData("PoisonQueueItems")]
-		public void Delete_ThrowsOnPendingItem(Tuple<TQueue, TQueuePoison> queueItem)
+		[Fact]
+		public void Delete_ReturnsFalseOnPendingItem()
 		{
 			var storage = jobStorageFactory();
-			ClearAllQueues(storage);
 
-			storage.Queue(queueItem.Item1);
+			var item = fixture.CreateAnonymous<TQueue>();
+			storage.Queue(item);
 			storage.TransitionNextQueuedItemToPending();
+			var poison = poisonConverter(item);
 
-			Assert.Throws<ArgumentException>(() => storage.Delete(queueItem.Item2));
+			Assert.False(storage.Delete(poison));
 		}
 
-		[Theory]
-		[PropertyData("PoisonQueueItems")]
-		public void Delete_DoesNotThrowOnPoisonedItem(Tuple<TQueue, TQueuePoison> queueItem)
+		private T GetStorageWithPoisonedItem(out TQueuePoison poison)
 		{
 			var storage = jobStorageFactory();
-			ClearAllQueues(storage);
-
-			storage.Queue(queueItem.Item1);
+			var item = fixture.CreateAnonymous<TQueue>();
+			storage.Queue(item);
 			storage.TransitionNextQueuedItemToPending();
-			storage.Poison(queueItem.Item1, queueItem.Item2);
+			poison = poisonConverter(item);
+			storage.Poison(item, poison);
 
-			Assert.DoesNotThrow(() => storage.Delete(queueItem.Item2));
+			return storage;
 		}
 
-		[Theory]
-		[PropertyData("PoisonQueueItems")]
-		public void Delete_GetPoisoned_ReturnsExpectedCount(Tuple<TQueue, TQueuePoison> queueItem)
+		[Fact]
+		public void Delete_ReturnsTrue_OnExistingPoisonedItem()
 		{
-			//TODO: pass better params
-			var storage = jobStorageFactory();
-			ClearAllQueues(storage);
+			TQueuePoison poison;
+			var storage = GetStorageWithPoisonedItem(out poison);
 
-			storage.Queue(queueItem.Item1);
-			storage.TransitionNextQueuedItemToPending();
-			storage.Poison(queueItem.Item1, queueItem.Item2);
-			storage.Delete(queueItem.Item2);
+			Assert.True(storage.Delete(poison));
+		}
+
+		[Fact]
+		public void Delete_GetPoisoned_ReturnsExpectedCount()
+		{
+			TQueuePoison poison;
+			var storage = GetStorageWithPoisonedItem(out poison);
+			storage.Delete(poison);
 
 			Assert.Empty(storage.GetPoisoned());
 		}
 
+		[Fact]
 		public void Delete_DoesNotModifyQueued()
 		{
+			TQueuePoison poison;
+			var storage = GetStorageWithPoisonedItem(out poison);
+			storage.Queue(fixture.CreateAnonymous<TQueue>());
+			storage.Queue(fixture.CreateAnonymous<TQueue>());
+			storage.TransitionNextQueuedItemToPending();
+			storage.Delete(poison);
+
+			Assert.Single(storage.GetQueued());
 		}
 
+		[Fact]
 		public void Delete_DoesNotModifyPending()
 		{
+			TQueuePoison poison;
+			var storage = GetStorageWithPoisonedItem(out poison);
+			storage.Queue(fixture.CreateAnonymous<TQueue>());
+			storage.Queue(fixture.CreateAnonymous<TQueue>());
+			storage.TransitionNextQueuedItemToPending();
+			storage.Delete(poison);
+
+			Assert.Single(storage.GetPending());
 		}
 
 		[Fact]
@@ -352,56 +355,60 @@ namespace EPS.Concurrency.Tests.Unit
 			Assert.Throws<ArgumentNullException>(() => storage.Complete(item));
 		}
 
+		[Fact]
+		public void Complete_ReturnsFalse_OnMissingItem()
+		{
+			var storage = jobStorageFactory();
 
-		//void Complete(TQueue item);
+			Assert.False(storage.Complete(fixture.CreateAnonymous<TQueue>()));
+		}
+
+		[Fact]
+		public void Complete_ReturnsTrue_OnPendingItem()
+		{
+			var storage = jobStorageFactory();
+
+			var item = fixture.CreateAnonymous<TQueue>();
+			storage.Queue(item);
+			storage.TransitionNextQueuedItemToPending();
+
+			Assert.True(storage.Complete(item));
+		}
 
 		[Fact]
 		public void GetQueued_IsEmptyOnClearedQueues()
 		{
 			var storage = jobStorageFactory();
-			ClearAllQueues(storage);
 
 			Assert.Empty(storage.GetQueued());
 		}
 
 		[Fact]
-		public void GetPending_IsEmptyOnClearedQueues()
+		public void GetQueued_PreservesOrdering()
 		{
 			var storage = jobStorageFactory();
-			ClearAllQueues(storage);
 
-			Assert.Empty(storage.GetPending());
-		}
-
-		[Fact]
-		public void GetPoisoned_IsEmptyOnClearedQueues()
-		{
-			var storage = jobStorageFactory();
-			ClearAllQueues(storage);
-
-			Assert.Empty(storage.GetPoisoned());
-		}
-
-		[Theory]
-		[PropertyData("QueueItemLists")]
-		public void GetQueued_PreservesOrdering(IEnumerable<TQueue> queueItems)
-		{
-			var storage = jobStorageFactory();
-			ClearAllQueues(storage);
-
+			var queueItems = fixture.CreateMany<TQueue>(15).ToList();
 			foreach (var item in queueItems)
 				storage.Queue(item);
 
 			Assert.True(queueItems.SequenceEqual(storage.GetQueued(), GenericEqualityComparer<TQueue>.ByAllMembers()));
 		}
 
-		[Theory]
-		[PropertyData("QueueItemLists")]
-		public void GetPending_PreservesOrdering(IEnumerable<TQueue> queueItems)
+		[Fact]
+		public void GetPending_IsEmptyOnClearedQueues()
 		{
 			var storage = jobStorageFactory();
-			ClearAllQueues(storage);
 
+			Assert.Empty(storage.GetPending());
+		}
+
+		[Fact]
+		public void GetPending_PreservesOrdering()
+		{
+			var storage = jobStorageFactory();
+
+			var queueItems = fixture.CreateMany<TQueue>(15).ToList();
 			foreach (var item in queueItems)
 			{
 				storage.Queue(item);
@@ -411,20 +418,26 @@ namespace EPS.Concurrency.Tests.Unit
 			Assert.True(queueItems.SequenceEqual(storage.GetPending(), GenericEqualityComparer<TQueue>.ByAllMembers()));
 		}
 
-		[Theory]
-		[PropertyData("BuildPoisonQueueItems")]
-		public void GetPoisoned_PreservesOrdering(IEnumerable<TQueue> queueItems, Func<TQueue, TQueuePoison> poisonBuilder)
+		[Fact]
+		public void GetPoisoned_IsEmptyOnClearedQueues()
 		{
 			var storage = jobStorageFactory();
-			ClearAllQueues(storage);
+
+			Assert.Empty(storage.GetPoisoned());
+		}
+
+		[Fact]
+		public void GetPoisoned_PreservesOrdering()
+		{
+			var storage = jobStorageFactory();
 
 			List<TQueuePoison> poisonedItems = new List<TQueuePoison>();
 
-			foreach (var item in queueItems)
+			foreach (var item in fixture.CreateMany<TQueue>(15))
 			{
 				storage.Queue(item);
 				storage.TransitionNextQueuedItemToPending();
-				var poisoned = poisonBuilder(item);
+				var poisoned = poisonConverter(item);
 				poisonedItems.Add(poisoned);
 				storage.Poison(item, poisoned);
 			}

@@ -6,7 +6,7 @@ namespace EPS.Concurrency
 	/// <summary>	Defines a standard queue interface for durable storage of jobs. </summary>
 	/// <remarks>	7/5/2011. </remarks>
 	/// <typeparam name="TQueue">		Type of the queue item. </typeparam>
-	/// <typeparam name="TQueuePosion">	Type of the poisoned queue item. </typeparam>
+	/// <typeparam name="TQueuePoison">	Type of the poisoned queue item. </typeparam>
 	public interface IDurableJobStorageQueue<TQueue, TQueuePoison>
 	{
 		/// <summary>	Adds a new item to the queue. </summary>
@@ -23,17 +23,20 @@ namespace EPS.Concurrency
 		/// <summary>	Removes a queued item from the pending state. </summary>
 		/// <remarks>	Should throw an exception if no item exists in the pending state. </remarks>
 		/// <param name="item">	The item. </param>
-		void Complete(TQueue item);
+		/// <returns>	true if it succeeds, false if it fails. </returns>
+		bool Complete(TQueue item);
 
 		/// <summary>	Poisons an item, moving it from the pending state to the poisoned state. </summary>
 		/// <remarks>	Should throw an exception if no item exists in the pending state. </remarks>
 		/// <param name="item">		   	The original item. </param>
 		/// <param name="poisonedItem">	The original item, converted to its poisoned representation. </param>
-		void Poison(TQueue item, TQueuePoison poisonedItem);
+		/// <returns>	true if it succeeds, false if it fails. </returns>
+		bool Poison(TQueue item, TQueuePoison poisonedItem);
 
 		/// <summary>	Deletes the given item from the poisoned state. </summary>
 		/// <param name="poisonedItem">	The poisoned representation of an item. </param>
-		void Delete(TQueuePoison poisonedItem);
+		/// <returns>	true if it succeeds, false if it fails. </returns>
+		bool Delete(TQueuePoison poisonedItem);
 
 		/// <summary>	Returns all poisoned items stored for this queue. </summary>
 		/// <returns>	An enumerable collection of poisoned items (that may be empty). </returns>
