@@ -152,11 +152,10 @@ namespace EPS.Concurrency.Tests.Unit
 		}
 
 		[Fact]
-		public void TransitionNextQueuedItemToPending_ReturnsNullOnEmptyQueueList()
+		public void TransitionNextQueuedItemToPending_ReturnsDefaultOnEmptyQueueList()
 		{
 			var storage = jobStorageFactory();
-
-			Assert.Null(storage.TransitionNextQueuedItemToPending());
+			Assert.Equal(default(TQueue), storage.TransitionNextQueuedItemToPending());
 		}
 
 		[Fact]
