@@ -28,16 +28,18 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DurableJobStorageMonitorTest.cs" />
-    <Compile Include="AutoJobQueueTest.cs" />
-    <Compile Include="IDurableJobStorageQueueTest.cs" />
-    <Compile Include="IJobQueueTest.cs" />
+    <Compile Include="DurableJobQueueMonitorTest.cs" />
+    <Compile Include="AutoJobExecutionQueueTest.cs" />
+    <Compile Include="IDurableJobQueueFactoryTest.cs" />
+    <Compile Include="IDurableJobQueueTest.cs" />
+    <Compile Include="IJobExecutionQueueTest.cs" />
     <Compile Include="IJobResultInspectorTest.cs" />
     <Compile Include="JobQueueActionTest.cs" />
     <Compile Include="JobResultTest.cs" />
-    <Compile Include="JournalingJobResultQueueTest.cs" />
-    <Compile Include="ManualJobQueueTest.cs" />
+    <Compile Include="JobResultJournalerTest.cs" />
+    <Compile Include="ManualJobExecutionQueueTest.cs" />
     <Compile Include="ObservableExtensionsTest.cs" />
+    <Compile Include="PoisonTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

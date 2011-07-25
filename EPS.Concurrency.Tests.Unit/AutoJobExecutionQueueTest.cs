@@ -7,14 +7,14 @@ using Xunit.Extensions;
 
 namespace EPS.Concurrency.Tests.Unit
 {
-	public abstract class AutoJobQueueTest<TJobInput, TJobOutput> :
-		IJobQueueTest<AutoJobQueue<TJobInput, TJobOutput>, TJobInput, TJobOutput>
+	public abstract class AutoJobExecutionQueueTest<TJobInput, TJobOutput> :
+		IJobExecutionQueueTest<AutoJobExecutionQueue<TJobInput, TJobOutput>, TJobInput, TJobOutput>
 	{
-		protected Func<IScheduler, int, AutoJobQueue<TJobInput, TJobOutput>> maxConcurrentJobQueueFactory;
-		protected Func<int, AutoJobQueue<TJobInput, TJobOutput>> publicMaxConcurrentJobQueueFactory;
+		protected Func<IScheduler, int, AutoJobExecutionQueue<TJobInput, TJobOutput>> maxConcurrentJobQueueFactory;
+		protected Func<int, AutoJobExecutionQueue<TJobInput, TJobOutput>> publicMaxConcurrentJobQueueFactory;
 
-		public AutoJobQueueTest(Func<IScheduler, int, AutoJobQueue<TJobInput, TJobOutput>> maxConcurrentJobQueueFactory,
-			Func<int, AutoJobQueue<TJobInput, TJobOutput>> publicMaxConcurrentJobQueueFactory)
+		public AutoJobExecutionQueueTest(Func<IScheduler, int, AutoJobExecutionQueue<TJobInput, TJobOutput>> maxConcurrentJobQueueFactory,
+			Func<int, AutoJobExecutionQueue<TJobInput, TJobOutput>> publicMaxConcurrentJobQueueFactory)
 			: base(s => maxConcurrentJobQueueFactory(s, 0))
 		{
 			this.maxConcurrentJobQueueFactory = maxConcurrentJobQueueFactory;
@@ -30,7 +30,7 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact]
 		public void Add_OnJobQueueInterface_AutomaticallyStartsJob()
 		{
-			var queue = maxConcurrentJobQueueFactory(Scheduler.Immediate, 10) as IJobQueue<TJobInput, TJobOutput>;
+			var queue = maxConcurrentJobQueueFactory(Scheduler.Immediate, 10) as IJobExecutionQueue<TJobInput, TJobOutput>;
 			var jobExecuted = new ManualResetEventSlim(false);
 			queue.Add(A.Dummy<TJobInput>(), jobInput =>
 			{
@@ -47,7 +47,7 @@ namespace EPS.Concurrency.Tests.Unit
 			public bool ExpectedNumberOfJobsFiredUp { get; set; }
 			public ManualResetEventSlim PrimaryJobPauser { get; set; }
 			public ManualResetEventSlim SecondaryJobPauser { get; set; }
-			public IJobQueue<TJobInput, TJobOutput> Queue { get; set; }
+			public IJobExecutionQueue<TJobInput, TJobOutput> Queue { get; set; }
 		}
 
 		private JobExecutionStatus WaitForMaxConcurrentJobsToStart(int jobsToAdd, int maxConcurrent, int iterations, bool
@@ -55,7 +55,7 @@ namespace EPS.Concurrency.Tests.Unit
 		{
 			var status = new JobExecutionStatus()
 			{
-				Queue = maxConcurrentJobQueueFactory(Scheduler.Immediate, maxConcurrent) as IJobQueue<TJobInput, TJobOutput>,
+				Queue = maxConcurrentJobQueueFactory(Scheduler.Immediate, maxConcurrent) as IJobExecutionQueue<TJobInput, TJobOutput>,
 				PrimaryJobPauser = new ManualResetEventSlim(false),
 				SecondaryJobPauser = new ManualResetEventSlim(false),
 				RemainingJobs = jobsToAdd
@@ -154,20 +154,20 @@ namespace EPS.Concurrency.Tests.Unit
 	}
 
 	public class ValueTypeAutoJobQueueTest :
-		AutoJobQueueTest<int, int>
+		AutoJobExecutionQueueTest<int, int>
 	{
 		public ValueTypeAutoJobQueueTest()
-			: base((scheduler, max) => new AutoJobQueue<int, int>(scheduler, max),
-			max => new AutoJobQueue<int, int>(max))
+			: base((scheduler, max) => new AutoJobExecutionQueue<int, int>(scheduler, max),
+			max => new AutoJobExecutionQueue<int, int>(max))
 		{ }
 	}
 
 	public class ReferenceTypeAutoJobQueueTest :
-		AutoJobQueueTest<object, object>
+		AutoJobExecutionQueueTest<object, object>
 	{
 		public ReferenceTypeAutoJobQueueTest()
-			: base((scheduler, max) => new AutoJobQueue<object, object>(scheduler, max),
-			max => new AutoJobQueue<object, object>(max))
+			: base((scheduler, max) => new AutoJobExecutionQueue<object, object>(scheduler, max),
+			max => new AutoJobExecutionQueue<object, object>(max))
 		{ }
 	}
 }

@@ -7,16 +7,16 @@ namespace EPS.Concurrency
 	/// <remarks>	Originally based on code from <a href="http://rxpowertoys.codeplex.com/" /> but modified heavily for jobs with inputs and outputs. </remarks>
 	/// <typeparam name="TJobInput"> 	Type of the job input. </typeparam>
 	/// <typeparam name="TJobOutput">	Type of the job output. </typeparam>
-	public class AutoJobQueue<TJobInput, TJobOutput> 
-		: ManualJobQueue<TJobInput, TJobOutput>
+	public class AutoJobExecutionQueue<TJobInput, TJobOutput> 
+		: ManualJobExecutionQueue<TJobInput, TJobOutput>
 	{		
 		private readonly int maxConcurrent;
 
-		/// <summary>	Creates a new AutoJobQueue that will automatically always have. </summary>
+		/// <summary>	Creates a new AutoJobExecutionQueue that will automatically always have. </summary>
 		/// <remarks>	7/15/2011. </remarks>
 		/// <exception cref="ArgumentOutOfRangeException">	Thrown when one or more arguments are outside the required range. </exception>
 		/// <param name="maxConcurrent">	The maximum concurrent number of jobs to allow to execute. </param>
-		public AutoJobQueue(int maxConcurrent)
+		public AutoJobExecutionQueue(int maxConcurrent)
 #if SILVERLIGHT
 			: this(Scheduler.ThreadPool, maxConcurrent)
 #else
@@ -29,7 +29,7 @@ namespace EPS.Concurrency
 			}
 		}
 
-		internal AutoJobQueue(IScheduler scheduler, int maxConcurrent)
+		internal AutoJobExecutionQueue(IScheduler scheduler, int maxConcurrent)
 			: base(scheduler)
 		{
 			//we'll allow maxConcurrent of 0 for the sake of internal tests

@@ -12,12 +12,12 @@ using Xunit.Extensions;
 
 namespace EPS.Concurrency.Tests.Unit
 {
-	public abstract class IJobQueueTest<TJobQueue, TJobInput, TJobOutput>
-		where TJobQueue: IJobQueue<TJobInput, TJobOutput>
+	public abstract class IJobExecutionQueueTest<TJobQueue, TJobInput, TJobOutput>
+		where TJobQueue: IJobExecutionQueue<TJobInput, TJobOutput>
 	{
 		protected readonly Func<IScheduler, TJobQueue> jobQueueFactory;
 
-		public IJobQueueTest(Func<IScheduler, TJobQueue> jobQueueFactory)
+		public IJobExecutionQueueTest(Func<IScheduler, TJobQueue> jobQueueFactory)
 		{
 			this.jobQueueFactory = jobQueueFactory;
 		}
@@ -244,7 +244,7 @@ namespace EPS.Concurrency.Tests.Unit
 			Assert.Equal(0, queue.RunningCount);
 		}
 
-		public IJobQueue<TJobInput, TJobOutput> NewQueueWithPausedJobs(int jobsCount, int maxConcurrent, ManualResetEventSlim jobWaitPrimitive)
+		public IJobExecutionQueue<TJobInput, TJobOutput> NewQueueWithPausedJobs(int jobsCount, int maxConcurrent, ManualResetEventSlim jobWaitPrimitive)
 		{
 			var queue = jobQueueFactory(Scheduler.Immediate);
 			for (int j = 0; j < jobsCount; j++)

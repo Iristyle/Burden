@@ -15,8 +15,8 @@ namespace EPS.Concurrency
 	/// <remarks>	7/15/2011. </remarks>
 	/// <typeparam name="TJobInput"> 	Type of the job input. </typeparam>
 	/// <typeparam name="TJobOutput">	Type of the job output. </typeparam>
-	public class ManualJobQueue<TJobInput, TJobOutput> 
-		: IJobQueue<TJobInput, TJobOutput>
+	public class ManualJobExecutionQueue<TJobInput, TJobOutput> 
+		: IJobExecutionQueue<TJobInput, TJobOutput>
 	{
 		//this class uniquely identifies an internal cancellation so we can properly modify the running job count
 		private class JobQueueCancellationException : OperationCanceledException
@@ -41,7 +41,7 @@ namespace EPS.Concurrency
 
 		/// <summary>	Default constructor, that uses the TaskPool scheduler in standard .NET or the ThreadPool scheduler in Silverlight. </summary>
 		/// <remarks>	7/15/2011. </remarks>
-		public ManualJobQueue()
+		public ManualJobExecutionQueue()
 #if SILVERLIGHT
 			: this(Scheduler.ThreadPool)
 #else
@@ -49,7 +49,7 @@ namespace EPS.Concurrency
 #endif
 		{ }
 
-		internal ManualJobQueue(IScheduler scheduler)
+		internal ManualJobExecutionQueue(IScheduler scheduler)
 		{
 			this.scheduler = scheduler;
 
@@ -68,8 +68,6 @@ namespace EPS.Concurrency
 					whenQueueEmpty.OnNext(new Unit());
 			});
 		}
-
-		#region IJobQueue Implementation
 
 		/// <summary>
 		/// The Observable that monitors job completion, where completion can be either run to completion, exception or cancellation.
@@ -229,8 +227,6 @@ namespace EPS.Concurrency
 				job.CompletionHandler.OnCompleted();
 			}
 		}
-
-		#endregion
 
 		private bool TryDequeNextJob(out Job job)
 		{
