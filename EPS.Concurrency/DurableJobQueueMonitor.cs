@@ -6,14 +6,14 @@ using System.Reactive.Linq;
 
 namespace EPS.Concurrency
 {
-	/// <summary>	Provides a means for polling a durable job storage queue and publishing those over an in-memory IObservable. </summary>
+	/// <summary>	Provides a means for polling a durable job queue and publishing those over an in-memory IObservable. </summary>
 	/// <remarks>	7/15/2011. </remarks>
 	/// <typeparam name="TQueue">	   	Type of the queue. </typeparam>
 	/// <typeparam name="TQueuePoison">	Type of the queue poison. </typeparam>
-	public class DurableJobStorageMonitor<TQueue, TQueuePoison> 
+	public class DurableJobQueueMonitor<TQueue, TQueuePoison> 
 		: IObservable<TQueue>
 	{
-		private readonly IDurableJobStorageQueue<TQueue, TQueuePoison> durableJobStorage;
+		private readonly IDurableJobQueue<TQueue, TQueuePoison> durableJobQueue;
 		private IObservable<TQueue> syncRequestPublisher;
 
 		private readonly int maxQueueItemsToPublishPerInterval;
@@ -34,28 +34,28 @@ namespace EPS.Concurrency
 			get { return pollingInterval; }
 		}
 
-		/// <summary>	Constructs a new monitor instance, given a durable job storage and a maximum number of items to publish over the observable per polling interval. </summary>
+		/// <summary>	Constructs a new monitor instance, given a durable job and a maximum number of items to publish over the observable per polling interval. </summary>
 		/// <remarks>	7/15/2011. </remarks>
-		/// <param name="durableJobStorage">		The durable job storage. </param>
+		/// <param name="durableJobQueue">		The durable job queue. </param>
 		/// <param name="maxQueueItemsToPublishPerInterval">	Handle of the maximum queue items to. </param>
-		public DurableJobStorageMonitor(IDurableJobStorageQueue<TQueue, TQueuePoison> durableJobStorage, int maxQueueItemsToPublishPerInterval)
+		public DurableJobQueueMonitor(IDurableJobQueue<TQueue, TQueuePoison> durableJobQueue, int maxQueueItemsToPublishPerInterval)
 #if SILVERLIGHT
-			: this(durableJobStorage, maxQueueItemsToHandle, Scheduler.ThreadPool)
+			: this(durableJobQueue, maxQueueItemsToHandle, Scheduler.ThreadPool)
 #else
-			: this(durableJobStorage, maxQueueItemsToPublishPerInterval, Scheduler.TaskPool)
+			: this(durableJobQueue, maxQueueItemsToPublishPerInterval, Scheduler.TaskPool)
 #endif
 		{ }
 
-		internal DurableJobStorageMonitor(IDurableJobStorageQueue<TQueue, TQueuePoison> durableJobStorage, int maxQueueItemsToPublishPerInterval, IScheduler scheduler)
+		internal DurableJobQueueMonitor(IDurableJobQueue<TQueue, TQueuePoison> durableJobQueue, int maxQueueItemsToPublishPerInterval, IScheduler scheduler)
 		{
 			if (null == scheduler)
 			{
 				throw new ArgumentNullException("scheduler");
 			}
 
-			if (null == durableJobStorage)
+			if (null == durableJobQueue)
 			{
-				throw new ArgumentNullException("durableJobStorage");
+				throw new ArgumentNullException("durableJobQueue");
 			}
 
 			if (maxQueueItemsToPublishPerInterval > maxAllowedQueueItemsToPublishPerInterval)
@@ -68,11 +68,11 @@ namespace EPS.Concurrency
 				throw new ArgumentOutOfRangeException("maxQueueItemsToPublishPerInterval", "must be at least 1");
 			}
 
-			this.durableJobStorage = durableJobStorage;
+			this.durableJobQueue = durableJobQueue;
 			this.maxQueueItemsToPublishPerInterval = maxQueueItemsToPublishPerInterval;
 
 			//on first construction, we must move any items out of 'pending' and back into 'queued', in the event of a crash recovery, etc
-			durableJobStorage.ResetAllPendingToQueued();
+			durableJobQueue.ResetAllPendingToQueued();
 
 			//fire up our polling on an interval, slurping up all non-nulls from 'queued', to a max of X items, but don't start until connect is called
 			syncRequestPublisher = Observable.Interval(pollingInterval, scheduler)
@@ -90,7 +90,7 @@ namespace EPS.Concurrency
 		{
 			while (true)
 			{
-				yield return durableJobStorage.TransitionNextQueuedItemToPending();
+				yield return durableJobQueue.TransitionNextQueuedItemToPending();
 			}
 		}
 
