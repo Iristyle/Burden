@@ -7,7 +7,7 @@ namespace EPS.Concurrency
 	/// <remarks>	7/5/2011. </remarks>
 	/// <typeparam name="TQueue">		Type of the queue item. </typeparam>
 	/// <typeparam name="TQueuePoison">	Type of the poisoned queue item. </typeparam>
-	public interface IDurableJobStorageQueue<TQueue, TQueuePoison>
+	public interface IDurableJobQueue<TQueue, TQueuePoison>
 	{
 		/// <summary>	Adds a new item to the queue. </summary>
 		/// <param name="item">	The item. </param>

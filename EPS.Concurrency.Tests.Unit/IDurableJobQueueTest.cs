@@ -9,14 +9,14 @@ using Xunit;
 
 namespace EPS.Concurrency.Tests.Unit
 {
-	public abstract class IDurableJobStorageQueueTest<T, TQueue, TQueuePoison>
-		where T: IDurableJobStorageQueue<TQueue, TQueuePoison>
+	public abstract class IDurableJobQueueTest<T, TQueue, TQueuePoison>
+		where T: IDurableJobQueue<TQueue, TQueuePoison>
 	{
 		protected Fixture fixture = new Fixture();
 		protected readonly Func<T> jobStorageFactory;
 		protected readonly Func<TQueue, TQueuePoison> poisonConverter;
 
-		public IDurableJobStorageQueueTest(Func<T> jobStorageFactory, Func<TQueue, TQueuePoison> poisonConverter)
+		public IDurableJobQueueTest(Func<T> jobStorageFactory, Func<TQueue, TQueuePoison> poisonConverter)
 		{
 			this.jobStorageFactory = () =>
 			{
@@ -27,7 +27,7 @@ namespace EPS.Concurrency.Tests.Unit
 			this.poisonConverter = poisonConverter;
 		}
 
-		protected void ClearAllQueues(IDurableJobStorageQueue<TQueue, TQueuePoison> storage)
+		protected void ClearAllQueues(IDurableJobQueue<TQueue, TQueuePoison> storage)
 		{
 			SlideItemsToPending(storage);
 			Assert.Empty(storage.GetQueued());
@@ -45,7 +45,7 @@ namespace EPS.Concurrency.Tests.Unit
 			Assert.Empty(storage.GetPoisoned());
 		}
 
-		protected List<TQueue> SlideItemsToPending(IDurableJobStorageQueue<TQueue, TQueuePoison> jobStorage)
+		protected List<TQueue> SlideItemsToPending(IDurableJobQueue<TQueue, TQueuePoison> jobStorage)
 		{
 			List<TQueue> items = new List<TQueue>();
 			while (true)
