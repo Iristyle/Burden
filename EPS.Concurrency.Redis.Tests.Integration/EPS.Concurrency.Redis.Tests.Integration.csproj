@@ -1,0 +1,65 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{2F5E0EE8-0A97-4F46-B73A-9795F8F9F96E}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>EPS.Concurrency.Redis.Tests.Integration</RootNamespace>
+    <AssemblyName>EPS.Concurrency.Redis.Tests.Integration</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="ServiceStack">
+      <HintPath>..\..\lib.services\ServiceStack-2.22\ServiceStack.dll</HintPath>
+    </Reference>
+    <Reference Include="ServiceStack.Interfaces, Version=1.0.4189.30552, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\lib.services\ServiceStack-2.22\ServiceStack.Interfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="ServiceStack.Redis, Version=2.2.0.8979, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\lib.services\ServiceStack-2.22\ServiceStack.Redis.dll</HintPath>
+    </Reference>
+    <Reference Include="ServiceStack.Text, Version=2.2.4.38332, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\lib.services\ServiceStack-2.22\ServiceStack.Text.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RedisJobQueueFactoryTest.cs" />
+    <Compile Include="RedisJobStorageTest.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\EPS.Concurrency.Redis\EPS.Concurrency.Redis.csproj">
+      <Project>{92B6F718-458A-4ABD-8F35-3E257828AA57}</Project>
+      <Name>EPS.Concurrency.Redis</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\EPS.Concurrency.Tests.Unit\EPS.Concurrency.Tests.Unit.csproj">
+      <Project>{99A2A7DE-81CE-4818-B06F-8E688CD7FA6D}</Project>
+      <Name>EPS.Concurrency.Tests.Unit</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\EPS.Concurrency\EPS.Concurrency.csproj">
+      <Project>{8D3539C9-8E82-4EDE-A9E2-5D7DF32F506C}</Project>
+      <Name>EPS.Concurrency</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\EPS.Test.Redis\EPS.Test.Redis.csproj">
+      <Project>{98C38204-F92D-4B29-8B96-C6F28F82CC61}</Project>
+      <Name>EPS.Test.Redis</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="..\Build\Shared.Test.targets" />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="..\Build\SharedPostBuild.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
