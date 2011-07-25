@@ -14,7 +14,7 @@ namespace EPS.Concurrency
 	/// <typeparam name="TJobInput">   	The type of the input to the job. </typeparam>
 	/// <typeparam name="TJobOutput">  	The type of the output from the job. </typeparam>
 	/// <typeparam name="TQueuePoison">	Type to be stored if a job failed and should be poisoned. </typeparam>
-	public class JournalingJobResultQueue<TJobInput, TJobOutput, TQueuePoison>
+	public class JobResultJournaler<TJobInput, TJobOutput, TQueuePoison>
 	{
 		private IDisposable jobCompleted;
 
@@ -24,25 +24,24 @@ namespace EPS.Concurrency
 		/// <remarks>	7/9/2011. </remarks>
 		/// <param name="jobCompletionNotifications">	The job completion notification stream. </param>
 		/// <param name="jobResultInspector">		 	The job result inspector. </param>
-		/// <param name="durableJobStorage">		 	The durable job storage. </param>
-		public JournalingJobResultQueue(IObservable<JobResult<TJobInput, TJobOutput>> jobCompletionNotifications, 
+		/// <param name="durableJobQueue">		 	The durable job queue. </param>
+		public JobResultJournaler(IObservable<JobResult<TJobInput, TJobOutput>> jobCompletionNotifications, 
 			IJobResultInspector<TJobInput, TJobOutput, TQueuePoison> jobResultInspector,
-			IDurableJobStorageQueue<TJobInput, TQueuePoison> durableJobStorage)
+			IDurableJobQueue<TJobInput, TQueuePoison> durableJobQueue)
 #if SILVERLIGHT
-			: this(jobCompletionNotifications, jobResultInspector, durableJobStorage, LogManager.GetCurrentClassLogger(), Scheduler.ThreadPool)
+			: this(jobCompletionNotifications, jobResultInspector, durableJobQueue, LogManager.GetCurrentClassLogger(), Scheduler.ThreadPool)
 #else
-			: this(jobCompletionNotifications, jobResultInspector, durableJobStorage, LogManager.GetCurrentClassLogger(), Scheduler.TaskPool)
+			: this(jobCompletionNotifications, jobResultInspector, durableJobQueue, LogManager.GetCurrentClassLogger(), Scheduler.TaskPool)
 #endif			
 		{ }
 
-		internal JournalingJobResultQueue(IObservable<JobResult<TJobInput, TJobOutput>> jobCompletionNotifications, 
+		internal JobResultJournaler(IObservable<JobResult<TJobInput, TJobOutput>> jobCompletionNotifications, 
 			IJobResultInspector<TJobInput, TJobOutput, TQueuePoison> jobResultInspector,
-			IDurableJobStorageQueue<TJobInput, TQueuePoison> durableJobStorage,
+			IDurableJobQueue<TJobInput, TQueuePoison> durableJobQueue,
 			ILog log,
 			IScheduler scheduler)
 		{
-
-			if (null == durableJobStorage) { throw new ArgumentNullException("durableJobStorage"); }
+			if (null == durableJobQueue) { throw new ArgumentNullException("durableJobQueue"); }
 			if (null == jobResultInspector) { throw new ArgumentNullException("jobResultInspector"); }
 			if (null == jobCompletionNotifications) { throw new ArgumentNullException("jobCompletionNotifications"); }
 
@@ -65,11 +64,11 @@ namespace EPS.Concurrency
 				//no need to check 
 				else if (queueAction.ActionType == JobQueueActionType.Poison)
 				{
-					durableJobStorage.Poison(notification.Input, queueAction.QueuePoison);
+					durableJobQueue.Poison(notification.Input, queueAction.QueuePoison);
 				}
 				else if (queueAction.ActionType == JobQueueActionType.Complete)
 				{
-					durableJobStorage.Complete(notification.Input);
+					durableJobQueue.Complete(notification.Input);
 				}
 				else
 				{
