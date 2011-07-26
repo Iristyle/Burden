@@ -46,10 +46,38 @@ namespace EPS.Concurrency
 		/// <typeparam name="TQueuePoison">	Type of the queue poison. </typeparam>
 		/// <param name="inspector">	The inspector Func. </param>
 		/// <returns>	An IJobResultInspector given a simple Func, that can be used to manufacturer job poisons. </returns>
-		public static IJobResultInspector<TJobInput, TJobOutput, TQueuePoison> From<TJobInput, TJobOutput, TQueuePoison>(Func<JobResult<TJobInput, TJobOutput>, JobQueueAction<TQueuePoison>> inspector)
+		public static IJobResultInspector<TJobInput, TJobOutput, TQueuePoison> FromInspector<TJobInput, TJobOutput, TQueuePoison>(Func<JobResult<TJobInput, TJobOutput>, JobQueueAction<TQueuePoison>> inspector)
 		{
 			if (null == inspector) { throw new ArgumentNullException("inspector"); }
 			return new JobResultInspector<TJobInput, TJobOutput, TQueuePoison>(inspector);
+		}
+
+		/// <summary>
+		/// Creates the standard IJobResultInspector given the job specification. Uses compiler inference to hide the details of using generics.
+		/// The poisoned type will automatically use Poison{T}, where T is replaced with the TJobInput.
+		/// </summary>
+		/// <remarks>	7/26/2011. </remarks>
+		/// <exception cref="ArgumentNullException">	Thrown when one or more required arguments are null. </exception>
+		/// <typeparam name="TJobInput"> 	Type of the job input. </typeparam>
+		/// <typeparam name="TJobOutput">	Type of the job output. </typeparam>
+		/// <param name="jobAction">	The job action. </param>
+		/// <returns>
+		/// An IJobResultInspector given a simple Func, that will manufacturer job poisons, given a simple mapping where JobResultType.Completed
+		/// is output as JobQueueActionType.Complete, otherwise the JobQueueAction is returned as JobQueueActionType.Poisoned.
+		/// </returns>
+		public static IJobResultInspector<TJobInput, TJobOutput, Poison<TJobInput>> FromJobSpecification<TJobInput, TJobOutput>(Func<TJobInput, TJobOutput> jobAction)
+		{
+			if (null == jobAction) { throw new ArgumentNullException("jobAction"); }
+
+			return new JobResultInspector<TJobInput, TJobOutput, Poison<TJobInput>>(result =>
+			{
+				//success
+				if (result.Type == JobResultType.Completed)
+					return new JobQueueAction<Poison<TJobInput>>(JobQueueActionType.Complete);
+
+				//poison
+				return new JobQueueAction<Poison<TJobInput>>(new Poison<TJobInput>(result.Input, result.Exception));
+			});
 		}
 	}
 }
