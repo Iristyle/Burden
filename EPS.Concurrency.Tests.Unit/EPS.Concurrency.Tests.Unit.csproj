@@ -30,10 +30,12 @@
   <ItemGroup>
     <Compile Include="DurableJobQueueMonitorTest.cs" />
     <Compile Include="AutoJobExecutionQueueTest.cs" />
+    <Compile Include="ExceptionDetailsTest.cs" />
     <Compile Include="IDurableJobQueueFactoryTest.cs" />
     <Compile Include="IDurableJobQueueTest.cs" />
     <Compile Include="IJobExecutionQueueTest.cs" />
     <Compile Include="IJobResultInspectorTest.cs" />
+    <Compile Include="IMonitoredJobQueueTest.cs" />
     <Compile Include="JobQueueActionTest.cs" />
     <Compile Include="JobResultInspectorTest.cs" />
     <Compile Include="JobResultTest.cs" />
