@@ -24,6 +24,7 @@
   <ItemGroup>
     <Compile Include="DurableJobQueueAction.cs" />
     <Compile Include="DurableJobQueueActionType.cs" />
+    <Compile Include="DurableQueueFactory.cs" />
     <Compile Include="ExceptionDetails.cs" />
     <Compile Include="MonitoredQueueBuilder.cs" />
     <Compile Include="DurableJobQueueMonitor.cs" />
