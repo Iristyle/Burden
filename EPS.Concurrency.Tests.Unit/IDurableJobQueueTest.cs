@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using EPS.Dynamic;
 using EPS.Utility;
-using FakeItEasy;
 using Ploeh.AutoFixture;
 using Xunit;
 
@@ -203,7 +202,7 @@ namespace EPS.Concurrency.Tests.Unit
 				return;
 
 			var item = (null as object).Cast<TQueuePoison>();
-			Assert.Throws<ArgumentNullException>(() => storage.Poison(A.Dummy<TQueue>(), item));
+			Assert.Throws<ArgumentNullException>(() => storage.Poison(fixture.CreateAnonymous<TQueue>(), item));
 		}
 
 		[Fact]
@@ -211,7 +210,7 @@ namespace EPS.Concurrency.Tests.Unit
 		{
 			var storage = jobStorageFactory();
 
-			Assert.False(storage.Poison(fixture.CreateAnonymous<TQueue>(), A.Dummy<TQueuePoison>()));
+			Assert.False(storage.Poison(fixture.CreateAnonymous<TQueue>(), fixture.CreateAnonymous<TQueuePoison>()));
 		}
 
 		[Fact]
@@ -222,7 +221,7 @@ namespace EPS.Concurrency.Tests.Unit
 			var item = fixture.CreateAnonymous<TQueue>();
 			storage.Queue(item);
 
-			Assert.False(storage.Poison(item, A.Dummy<TQueuePoison>()));
+			Assert.False(storage.Poison(item, fixture.CreateAnonymous<TQueuePoison>()));
 		}
 
 		[Fact]
