@@ -42,7 +42,7 @@ namespace EPS.Concurrency
 		public void Queue(TQueue item)
 		{
 			durableJobQueue.Queue(item);
-			onQueueAction.OnNext(DurableJobQueueAction.Queued<TQueue, TQueuePoison>(item));
+			onQueueAction.OnNext(DurableJobQueueAction.Queued(item));
 		}
 
 		/// <summary>	Gets the next available queued item and transitions said item to the pending state. </summary>
@@ -54,7 +54,7 @@ namespace EPS.Concurrency
 			var item = durableJobQueue.TransitionNextQueuedItemToPending();
 			if (null != item)
 			{
-				onQueueAction.OnNext(DurableJobQueueAction.Pending<TQueue, TQueuePoison>(item));
+				onQueueAction.OnNext(DurableJobQueueAction.Pending(item));
 			}
 			return item;
 		}
@@ -76,7 +76,7 @@ namespace EPS.Concurrency
 		{
 			var result = durableJobQueue.Complete(item);
 			if (result)
-				onQueueAction.OnNext(DurableJobQueueAction.Completed<TQueue, TQueuePoison>(item));
+				onQueueAction.OnNext(DurableJobQueueAction.Completed(item));
 			return result;
 		}
 
@@ -105,7 +105,7 @@ namespace EPS.Concurrency
 		{
 			var result = durableJobQueue.Delete(poisonedItem);
 			if (result)
-				onQueueAction.OnNext(DurableJobQueueAction.Deleted<TQueue, TQueuePoison>(poisonedItem));
+				onQueueAction.OnNext(DurableJobQueueAction.Deleted(poisonedItem));
 			return result;
 		}
 
