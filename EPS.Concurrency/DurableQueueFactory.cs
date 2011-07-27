@@ -28,7 +28,7 @@ namespace EPS.Concurrency
 		}
 
 		//not sure that this is even possible (or necessary)
-		public static IDurableJobQueueFactory From<object, object>(Expression<Func<object, object, IDurableJobQueue<object, object>>> builder)
+		public static IDurableJobQueueFactory From(Expression<Func<object, object, IDurableJobQueue<object, object>>> builder)
 		{
 			return new DurableQueueFactoryExpressionWrapper<object, object>(builder);
 		}
