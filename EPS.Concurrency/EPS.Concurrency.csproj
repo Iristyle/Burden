@@ -22,19 +22,30 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DurableJobStorageMonitor.cs" />
-    <Compile Include="AutoJobQueue.cs" />
+    <Compile Include="DurableJobQueueAction.cs" />
+    <Compile Include="DurableJobQueueActionType.cs" />
+    <Compile Include="ExceptionDetails.cs" />
+    <Compile Include="MonitoredQueueBuilder.cs" />
+    <Compile Include="DurableJobQueueMonitor.cs" />
+    <Compile Include="AutoJobExecutionQueue.cs" />
+    <Compile Include="IDurableJobQueueFactory.cs" />
     <Compile Include="IJobResultInspector.cs" />
+    <Compile Include="IMonitoredJobQueue.cs" />
     <Compile Include="JobQueueAction.cs" />
     <Compile Include="JobQueueActionType.cs" />
+    <Compile Include="JobResultInspector.cs" />
     <Compile Include="JobResultType.cs" />
-    <Compile Include="ManualJobQueue.cs" />
-    <Compile Include="IDurableJobStorageQueue.cs" />
-    <Compile Include="IJobQueue.cs" />
+    <Compile Include="ManualJobExecutionQueue.cs" />
+    <Compile Include="IDurableJobQueue.cs" />
+    <Compile Include="IJobExecutionQueue.cs" />
     <Compile Include="JobResult.cs" />
-    <Compile Include="JournalingJobResultQueue.cs" />
+    <Compile Include="JobResultJournaler.cs" />
+    <Compile Include="MonitoredJobQueue.cs" />
+    <Compile Include="ObservableDurableJobQueue.cs" />
     <Compile Include="ObservableExtensions.cs" />
+    <Compile Include="Poison.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TransientJobQueue.cs" />
   </ItemGroup>
   <Import Project="..\Build\Shared.targets" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
