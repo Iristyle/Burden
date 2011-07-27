@@ -23,7 +23,8 @@ namespace EPS.Concurrency
 		public ObservableDurableJobQueue(IDurableJobQueue<TQueue, TQueuePoison> durableJobQueue)
 		{
 			if (null == durableJobQueue) { throw new ArgumentNullException("durableJobQueue"); }
-			if (typeof(ObservableDurableJobQueue<,>).IsAssignableFrom(durableJobQueue.GetType().GetGenericTypeDefinition()))
+			var queueType = durableJobQueue.GetType();
+			if (queueType.IsGenericType && typeof(ObservableDurableJobQueue<,>).IsAssignableFrom(queueType.GetGenericTypeDefinition()))
 				{ throw new ArgumentException("Incoming queue instance is an ObservableDurableJobQueue.  Nesting not supported.", "durableJobQueue"); }
 			this.durableJobQueue = durableJobQueue;
 		}

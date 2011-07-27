@@ -20,11 +20,6 @@ namespace EPS.Concurrency
 		//TODO: 7-23-2011 - it would be nice to eliminate the need for a factory, using something like this
 		//Expression<Func<object, object, IDurableJobQueue<TInput, TPoison>>> factory
 
-		private IDurableJobQueue<TInput, TOutput> GetDurableQueueForTypes<TInput, TOutput>()
-		{
-			return factory.CreateDurableJobQueue<TInput, TOutput>();
-		}
-
 		/// <summary>	Creates a monitored queue given a function. </summary>
 		/// <remarks>	7/24/2011. </remarks>
 		/// <exception cref="ArgumentNullException">	Thrown when the action is null. </exception>
@@ -39,8 +34,7 @@ namespace EPS.Concurrency
 		{
 			if (null == jobAction) { throw new ArgumentNullException("jobAction"); }
 
-			var jobStorage = GetDurableQueueForTypes<TInput, Poison<TInput>>();
-			return MonitoredJobQueue.Create(jobStorage, jobAction);
+			return MonitoredJobQueue.Create(factory, jobAction);
 		}
 
 		/// <summary>	Creates a monitored queue given a function and a result inspector. </summary>
@@ -60,8 +54,7 @@ namespace EPS.Concurrency
 			if (null == jobAction) { throw new ArgumentNullException("jobAction"); }
 			if (null == resultsInspector) { throw new ArgumentNullException("resultsInspector"); }
 
-			var jobStorage = GetDurableQueueForTypes<TInput, TPoison>();
-			return MonitoredJobQueue.Create(jobStorage, jobAction, resultsInspector);
+			return MonitoredJobQueue.Create(factory, jobAction, resultsInspector);
 		}
 	}
 }
