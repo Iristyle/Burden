@@ -43,11 +43,12 @@
     <Compile Include="JobResultJournalerTest.cs" />
     <Compile Include="ManualJobExecutionQueueTest.cs" />
     <Compile Include="MonitoredJobQueueTest.cs" />
+    <Compile Include="ObservableDurableJobQueueTest.cs" />
     <Compile Include="ObservableExtensionsTest.cs" />
     <Compile Include="PoisonTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="MonitoredQueueBuilderTest.cs" />
-    <Compile Include="TestJobQueue.cs" />
+    <Compile Include="TransientJobQueueTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EPS.Concurrency\EPS.Concurrency.csproj">
