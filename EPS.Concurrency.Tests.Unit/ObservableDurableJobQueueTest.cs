@@ -25,16 +25,27 @@ namespace EPS.Concurrency.Tests.Unit
 	public abstract class ObservableDurableJobQueueTest<TQueue, TQueuePoison>
 	: IDurableJobQueueTest<ObservableDurableJobQueue<TQueue, TQueuePoison>, TQueue, TQueuePoison>
 	{
+		private static IDurableJobQueue<TQueue, TQueuePoison> GetTransient()
+		{
+			return new TransientJobQueue<TQueue, TQueuePoison>(GenericEqualityComparer<TQueue>.ByAllMembers(), 
+			GenericEqualityComparer<TQueuePoison>.ByAllMembers());
+		}
 		public ObservableDurableJobQueueTest(Func<TQueue, TQueuePoison> poisonConverter)
-			: base(() => new ObservableDurableJobQueue<TQueue, TQueuePoison>(
-			new TransientJobQueue<TQueue, TQueuePoison>(GenericEqualityComparer<TQueue>.ByAllMembers(), GenericEqualityComparer<
-			TQueuePoison>.ByAllMembers())), poisonConverter)
+			: base(() => new ObservableDurableJobQueue<TQueue, TQueuePoison>(GetTransient()), poisonConverter)
 		{ }
 
 		[Fact]
 		public void Constructor_Throws_OnNullDurableJobQueue()
 		{
 			Assert.Throws<ArgumentNullException>(() => new ObservableDurableJobQueue<TQueue, TQueuePoison>(null));
+		}
+
+		[Fact]
+		public void Constructor_Throws_WhenNestingObservableDurableJobQueues()
+		{
+			Assert.Throws<ArgumentException>(() => new ObservableDurableJobQueue<TQueue, TQueuePoison>(new 
+			ObservableDurableJobQueue<TQueue, TQueuePoison>(GetTransient())));
+				
 		}
 
 		class Observation
