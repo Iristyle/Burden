@@ -59,7 +59,7 @@ namespace EPS.Concurrency
 			if (null == resultsInspector) { throw new ArgumentNullException("resultsInspector"); }
 
 			this.durableQueue = new ObservableDurableJobQueue<TInput, TPoison>(durableQueue);
-			this.monitor = new DurableJobQueueMonitor<TInput, TPoison>(durableQueue, 20, scheduler);
+			this.monitor = new DurableJobQueueMonitor<TInput, TPoison>(durableQueue, 20, scheduler);			
 			this.jobQueue = new AutoJobExecutionQueue<TInput, TOutput>(scheduler, 10);
 			this.resultJournaler = new JobResultJournaler<TInput, TOutput, TPoison>(jobQueue.WhenJobCompletes, resultsInspector, durableQueue, null, scheduler);
 
@@ -150,6 +150,20 @@ namespace EPS.Concurrency
 		public int QueuedCount
 		{
 			get { return jobQueue.QueuedCount; }
+		}
+		
+		/// <summary>	Gets the maximum allowable queue items to publish per interval, presently 50000. </summary>
+		/// <value>	The maximum allowable queue items to publish per interval, presently 50000. </value>
+		public int MaxAllowedQueueItemsToPublishPerInterval
+		{
+			get { return this.monitor.MaxAllowedQueueItemsToPublishPerInterval; }
+		}
+
+		/// <summary>	Gets the polling interval. </summary>
+		/// <value>	The polling interval. </value>
+		public TimeSpan PollingInterval
+		{
+			get { return this.monitor.PollingInterval; }
 		}
 	}
 

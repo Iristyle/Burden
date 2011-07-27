@@ -36,6 +36,14 @@ namespace EPS.Concurrency
 		/// <value>	The number of queued jobs. </value>
 		int QueuedCount { get; }
 
+		/// <summary>	Gets the maximum allowable queue items to publish per interval, presently 50000. </summary>
+		/// <value>	The maximum allowable queue items to publish per interval, presently 50000. </value>
+		int MaxAllowedQueueItemsToPublishPerInterval { get; }
+
+		/// <summary>	Gets the polling interval. </summary>
+		/// <value>	The polling interval. </value>
+		TimeSpan PollingInterval { get; }
+
 		//TODO: 7-26-2011 -- consider surfacing additional observables from a wrapped IJobResultInspector
 	}
 }
