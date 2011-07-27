@@ -35,7 +35,7 @@ namespace EPS.Concurrency
 		/// A new IMonitoredJobQueue instance corresponding to the given action, where poisoned items are stored in the durable queue simply as
 		/// input plus Exception - ie Poison{TInput}.  Call basically delegates to MonitoredJobQueue.Create.
 		/// </returns>
-		public IMonitoredJobQueue<TInput> CreateMonitoredQueue<TInput, TOutput>(Func<TInput, TOutput> jobAction)
+		public IMonitoredJobQueue<TInput, TOutput, Poison<TInput>> CreateMonitoredQueue<TInput, TOutput>(Func<TInput, TOutput> jobAction)
 		{
 			if (null == jobAction) { throw new ArgumentNullException("jobAction"); }
 
@@ -55,7 +55,7 @@ namespace EPS.Concurrency
 		/// A new IMonitoredJobQueue instance corresponding to the given action, where the type of poisoned input is automatically inferred based
 		/// on the given resultsInspector.Call basically delegates to MonitoredJobQueue.Create.
 		/// </returns>
-		public IMonitoredJobQueue<TInput> CreateMonitoredQueue<TInput, TOutput, TPoison>(Func<TInput, TOutput> jobAction, Func<JobResult<TInput, TOutput>, JobQueueAction<TPoison>> resultsInspector)
+		public IMonitoredJobQueue<TInput, TOutput, TPoison> CreateMonitoredQueue<TInput, TOutput, TPoison>(Func<TInput, TOutput> jobAction, Func<JobResult<TInput, TOutput>, JobQueueAction<TPoison>> resultsInspector)
 		{
 			if (null == jobAction) { throw new ArgumentNullException("jobAction"); }
 			if (null == resultsInspector) { throw new ArgumentNullException("resultsInspector"); }
