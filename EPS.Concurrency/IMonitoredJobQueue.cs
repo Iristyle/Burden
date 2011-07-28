@@ -36,9 +36,9 @@ namespace EPS.Concurrency
 		/// <value>	The number of queued jobs. </value>
 		int QueuedCount { get; }
 
-		/// <summary>	Gets the maximum allowable queue items to publish per interval, presently 50000. </summary>
-		/// <value>	The maximum allowable queue items to publish per interval, presently 50000. </value>
-		int MaxAllowedQueueItemsToPublishPerInterval { get; }
+		/// <summary>	Gets the maximum items to publish per interval for this instance. </summary>
+		/// <value>	The maximum queue items to publish per interval for this instance. </value>
+		int MaxQueueItemsToPublishPerInterval { get; }
 
 		/// <summary>	Gets the polling interval. </summary>
 		/// <value>	The polling interval. </value>
