@@ -17,11 +17,7 @@ namespace EPS.Concurrency
 		/// <exception cref="ArgumentOutOfRangeException">	Thrown when one or more arguments are outside the required range. </exception>
 		/// <param name="maxConcurrent">	The maximum concurrent number of jobs to allow to execute. </param>
 		public AutoJobExecutionQueue(int maxConcurrent)
-#if SILVERLIGHT
-			: this(Scheduler.ThreadPool, maxConcurrent)
-#else
-			: this(Scheduler.TaskPool, maxConcurrent)
-#endif
+			: this(LocalScheduler.Default, maxConcurrent)
 		{
 			if (maxConcurrent < 1)
 			{
@@ -55,12 +51,7 @@ namespace EPS.Concurrency
 		{
 			base.OnJobCompleted(job, jobResult, error);
 			if (error != null)
-#if SILVERLIGHT
-			Scheduler.ThreadPool.Schedule(() => StartUpTo(maxConcurrent));
-#else
-			Scheduler.TaskPool.Schedule(() => StartUpTo(maxConcurrent));
-#endif
-				
+				LocalScheduler.Default.Schedule(() => StartUpTo(maxConcurrent));
 			else
 				StartUpTo(maxConcurrent);
 		}

@@ -42,11 +42,7 @@ namespace EPS.Concurrency
 		/// <summary>	Default constructor, that uses the TaskPool scheduler in standard .NET or the ThreadPool scheduler in Silverlight. </summary>
 		/// <remarks>	7/15/2011. </remarks>
 		public ManualJobExecutionQueue()
-#if SILVERLIGHT
-			: this(Scheduler.ThreadPool)
-#else
-			: this(Scheduler.TaskPool)
-#endif
+			: this(LocalScheduler.Default)
 		{ }
 
 		internal ManualJobExecutionQueue(IScheduler scheduler)

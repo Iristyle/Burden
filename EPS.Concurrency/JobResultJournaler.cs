@@ -28,11 +28,7 @@ namespace EPS.Concurrency
 		public JobResultJournaler(IObservable<JobResult<TJobInput, TJobOutput>> jobCompletionNotifications, 
 			IJobResultInspector<TJobInput, TJobOutput, TQueuePoison> jobResultInspector,
 			IDurableJobQueue<TJobInput, TQueuePoison> durableJobQueue)
-#if SILVERLIGHT
-			: this(jobCompletionNotifications, jobResultInspector, durableJobQueue, LogManager.GetCurrentClassLogger(), Scheduler.ThreadPool)
-#else
-			: this(jobCompletionNotifications, jobResultInspector, durableJobQueue, LogManager.GetCurrentClassLogger(), Scheduler.TaskPool)
-#endif			
+			: this(jobCompletionNotifications, jobResultInspector, durableJobQueue, LogManager.GetCurrentClassLogger(), LocalScheduler.Default)
 		{ }
 
 		internal JobResultJournaler(IObservable<JobResult<TJobInput, TJobOutput>> jobCompletionNotifications, 
