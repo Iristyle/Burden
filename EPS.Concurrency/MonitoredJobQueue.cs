@@ -1,7 +1,7 @@
 using System;
+using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Threading;
-using System.Reactive.Concurrency;
 
 namespace EPS.Concurrency
 {
@@ -19,80 +19,74 @@ namespace EPS.Concurrency
 		private readonly DurableJobQueueMonitor<TInput, TPoison> monitor;
 		private readonly JobResultJournaler<TInput, TOutput, TPoison> resultJournaler;
 		private readonly IDisposable subscription;
+		private static int defaultItemsToPublishPerInterval = 200;
 
 		/// <summary>	Initializes a new instance of the MonitoredJobQueue class. </summary>
-		/// <remarks>	7/24/2011. </remarks>
+		/// <remarks>	Uses DefaultPollingInterval and DefaultItemstoPublishPerInterval. </remarks>
+		/// <param name="durableQueue">	   	The durable queue. </param>
+		/// <param name="jobAction">	   	The job to perform. </param>
+		/// <param name="">				   	The. </param>
+		/// <param name="resultsInspector">	The results inspector. </param>
 		/// <exception cref="ArgumentNullException">	Thrown when the durableQueue, jobAction or resultsInspector are null. </exception>
+		public MonitoredJobQueue(ObservableDurableJobQueue<TInput, TPoison> durableQueue, Func<TInput, TOutput> jobAction, Func<JobResult<TInput, TOutput>, JobQueueAction<TPoison>> resultsInspector)
+			: this(durableQueue, jobAction, JobResultInspector.FromInspector(resultsInspector), DurableJobQueueMonitor.DefaultPollingInterval, defaultItemsToPublishPerInterval, LocalScheduler.Default)
+		{ }
+
+		/// <summary>	Initializes a new instance of the MonitoredJobQueue class. </summary>
+		/// <remarks>	Uses DefaultPollingInterval and DefaultItemstoPublishPerInterval. </remarks>
 		/// <param name="durableQueue">	   	The durable queue. </param>
 		/// <param name="jobAction">	   	The job to perform. </param>
 		/// <param name="resultsInspector">	The results inspector. </param>
-		public MonitoredJobQueue(IDurableJobQueue<TInput, TPoison> durableQueue, Func<TInput, TOutput> jobAction, Func<
-		JobResult<TInput, TOutput>, JobQueueAction<TPoison>> resultsInspector)
-			: this(durableQueue, jobAction, JobResultInspector.FromInspector(resultsInspector),
-#if SILVERLIGHT
-			Scheduler.ThreadPool)
-#else
-			Scheduler.TaskPool)
-#endif
+		/// <exception cref="ArgumentNullException">	Thrown when the durableQueue, jobAction or resultsInspector are null. </exception>
+		public MonitoredJobQueue(ObservableDurableJobQueue<TInput, TPoison> durableQueue, Func<TInput, TOutput> jobAction, IJobResultInspector<TInput, TOutput, TPoison> resultsInspector)
+			: this(durableQueue, jobAction, resultsInspector, DurableJobQueueMonitor.DefaultPollingInterval, defaultItemsToPublishPerInterval, LocalScheduler.Default)
 		{ }
 
 		/// <summary>	Initializes a new instance of the MonitoredJobQueue class. </summary>
 		/// <remarks>	7/24/2011. </remarks>
+		/// <param name="durableQueue">							   	The durable queue. </param>
+		/// <param name="jobAction">							   	The job to perform. </param>
+		/// <param name="">										   	The. </param>
+		/// <param name="resultsInspector">						   	The results inspector. </param>
+		/// <param name="pollingInterval">						   	The polling interval. </param>
+		/// <param name="maxQueueItemsToPublishPerInterval">	The maximum queue items to publish per interval. </param>
 		/// <exception cref="ArgumentNullException">	Thrown when the durableQueue, jobAction or resultsInspector are null. </exception>
-		/// <param name="durableQueue">	   	The durable queue. </param>
-		/// <param name="jobAction">	   	The job to perform. </param>
-		/// <param name="resultsInspector">	The results inspector. </param>
-		public MonitoredJobQueue(IDurableJobQueue<TInput, TPoison> durableQueue, Func<TInput, TOutput> jobAction, IJobResultInspector<TInput, TOutput, TPoison> resultsInspector)
-			: this(durableQueue, jobAction, resultsInspector,
-#if SILVERLIGHT
-			Scheduler.ThreadPool)
-#else
- Scheduler.TaskPool)
-#endif
+		public MonitoredJobQueue(ObservableDurableJobQueue<TInput, TPoison> durableQueue, Func<TInput, TOutput> jobAction, Func<JobResult<TInput, TOutput>, JobQueueAction<TPoison>> resultsInspector,
+			TimeSpan pollingInterval, int maxQueueItemsToPublishPerInterval)
+			: this(durableQueue, jobAction, JobResultInspector.FromInspector(resultsInspector), pollingInterval, maxQueueItemsToPublishPerInterval, LocalScheduler.Default)
 		{ }
 
+		/// <summary>	Initializes a new instance of the MonitoredJobQueue class. </summary>
+		/// <remarks>	7/24/2011. </remarks>
+		/// <param name="durableQueue">							   	The durable queue. </param>
+		/// <param name="jobAction">							   	The job to perform. </param>
+		/// <param name="resultsInspector">						   	The results inspector. </param>
+		/// <param name="pollingInterval">						   	The polling interval. </param>
+		/// <param name="maxQueueItemsToPublishPerInterval">	The maximum queue items to publish per interval. </param>
+		/// <exception cref="ArgumentNullException">	Thrown when the durableQueue, jobAction or resultsInspector are null. </exception>
+		public MonitoredJobQueue(ObservableDurableJobQueue<TInput, TPoison> durableQueue, Func<TInput, TOutput> jobAction, IJobResultInspector<TInput, TOutput, TPoison> resultsInspector,
+			TimeSpan pollingInterval, int maxQueueItemsToPublishPerInterval)
+			: this(durableQueue, jobAction, resultsInspector, pollingInterval, maxQueueItemsToPublishPerInterval, LocalScheduler.Default)
+		{ }
 
-		internal MonitoredJobQueue(IDurableJobQueue<TInput, TPoison> durableQueue, Func<TInput, TOutput> jobAction, IJobResultInspector<TInput, TOutput, TPoison> resultsInspector, IScheduler scheduler)
+		internal MonitoredJobQueue(ObservableDurableJobQueue<TInput, TPoison> durableQueue, Func<TInput, TOutput> jobAction, IJobResultInspector<TInput, TOutput, TPoison> resultsInspector, 
+			TimeSpan pollingInterval, int maxQueueItemsToPublishPerInterval, IScheduler scheduler)
 		{
 			if (null == durableQueue) { throw new ArgumentNullException("durableQueue"); }
 			if (null == jobAction) { throw new ArgumentNullException("jobAction"); }
 			if (null == resultsInspector) { throw new ArgumentNullException("resultsInspector"); }
+			if (null == scheduler) { throw new ArgumentNullException("scheduler"); }
+			if (pollingInterval < TimeSpan.FromSeconds(1)) { throw new ArgumentOutOfRangeException("pollingInterval", "must be at least one second"); }
+			if (maxQueueItemsToPublishPerInterval <= 0) { throw new ArgumentOutOfRangeException("maxQueueItemsToPublishPerInterval", "must be at least one"); }
 
-			this.durableQueue = new ObservableDurableJobQueue<TInput, TPoison>(durableQueue);
-			this.monitor = new DurableJobQueueMonitor<TInput, TPoison>(durableQueue, 20, scheduler);			
+			this.durableQueue = durableQueue;
+			this.monitor = new DurableJobQueueMonitor<TInput, TPoison>(durableQueue, pollingInterval, maxQueueItemsToPublishPerInterval, scheduler);
 			this.jobQueue = new AutoJobExecutionQueue<TInput, TOutput>(scheduler, 10);
 			this.resultJournaler = new JobResultJournaler<TInput, TOutput, TPoison>(jobQueue.WhenJobCompletes, resultsInspector, durableQueue, null, scheduler);
 
 			this.subscription = monitor
 				.SubscribeOn(scheduler)
 				.Subscribe(input => jobQueue.Add(input, jobAction));
-			
-		}
-
-		/// <summary>	Adds a job.  </summary>
-		/// <remarks>	7/24/2011. </remarks>
-		/// <param name="input">	The input. </param>
-		public void AddJob(TInput input)
-		{
-			durableQueue.Queue(input);
-		}
-
-		/// <summary>	Cancel queued and wait for executing jobs to complete. </summary>
-		/// <remarks>	7/24/2011. </remarks>
-		public void CancelQueuedAndWaitForExecutingJobsToComplete(TimeSpan timeout)
-		{
-			var manualResetEventSlim = new ManualResetEventSlim(false);
-			using (var completed = jobQueue.WhenQueueEmpty
-				.Do(n =>{ var @false = false; }, () => manualResetEventSlim.Set())
-				.Subscribe())
-			{
-				jobQueue.CancelOutstandingJobs();
-
-				if (jobQueue.RunningCount != 0)
-				{
-					manualResetEventSlim.Wait(timeout);
-				}
-			}
 		}
 
 		/// <summary>	Dispose of this object, cleaning up any resources it uses. </summary>
@@ -154,9 +148,9 @@ namespace EPS.Concurrency
 		
 		/// <summary>	Gets the maximum allowable queue items to publish per interval, presently 50000. </summary>
 		/// <value>	The maximum allowable queue items to publish per interval, presently 50000. </value>
-		public int MaxAllowedQueueItemsToPublishPerInterval
+		public int MaxQueueItemsToPublishPerInterval
 		{
-			get { return this.monitor.MaxAllowedQueueItemsToPublishPerInterval; }
+			get { return this.monitor.MaxQueueItemsToPublishPerInterval; }
 		}
 
 		/// <summary>	Gets the polling interval. </summary>
@@ -165,81 +159,164 @@ namespace EPS.Concurrency
 		{
 			get { return this.monitor.PollingInterval; }
 		}
+
+		/// <summary>	Adds a job.  </summary>
+		/// <remarks>	7/24/2011. </remarks>
+		/// <param name="input">	The input. </param>
+		public void AddJob(TInput input)
+		{
+			durableQueue.Queue(input);
+		}
+
+		/// <summary>	Cancel queued and wait for executing jobs to complete. </summary>
+		/// <remarks>	7/24/2011. </remarks>
+		public void CancelQueuedAndWaitForExecutingJobsToComplete(TimeSpan timeout)
+		{
+			var manualResetEventSlim = new ManualResetEventSlim(false);
+			using (var completed = jobQueue.WhenQueueEmpty
+				.Do(n => { var @false = false; }, () => manualResetEventSlim.Set())
+				.Subscribe())
+			{
+				jobQueue.CancelOutstandingJobs();
+
+				if (jobQueue.RunningCount != 0)
+				{
+					manualResetEventSlim.Wait(timeout);
+				}
+			}
+		}
 	}
 
-	/// <summary>	A simple helper class for creating a simplified IMonitoredJobQueue facade given an IDurableJobQueue and IJobExecutionQueue.  </summary>
+	/// <summary>
+	/// A simple helper class for creating a simplified IMonitoredJobQueue facade given an IDurableJobQueueFactory and job action.  Overloads
+	/// provide the ability to inspect given job output via a custom result inspection method.
+	/// </summary>
 	/// <remarks>	7/24/2011. </remarks>
-	internal static class MonitoredJobQueue
+	public static class MonitoredJobQueue
 	{
-		public static IMonitoredJobQueue<TInput, TOutput, Poison<TInput>> Create<TInput, TOutput>(IDurableJobQueue<TInput, Poison<TInput>> durableQueue,
+		private static ObservableDurableJobQueue<TQueue, TQueuePoison> CreateQueue<TQueue, TQueuePoison>(IDurableJobQueueFactory durableQueueFactory)
+		{
+			if (null == durableQueueFactory) { throw new ArgumentNullException("durableQueueFactory"); }
+
+			return new ObservableDurableJobQueue<TQueue, TQueuePoison>(durableQueueFactory.CreateDurableJobQueue<TQueue, TQueuePoison>());
+		}
+
+		/// <summary>	Creates a simplified IMonitoredJobQueue interface given a durable queue factory and a job action. </summary>
+		/// <remarks>	7/27/2011. </remarks>
+		/// <exception cref="ArgumentNullException">	Thrown when the factory or action are null. </exception>
+		/// <typeparam name="TInput"> 	Type of the input. </typeparam>
+		/// <typeparam name="TOutput">	Type of the output. </typeparam>
+		/// <param name="durableQueueFactory">	The durable queue factory. </param>
+		/// <param name="jobAction">		  	The job action. </param>
+		/// <returns>	An IMonitoredJobQueue instance that simplifies queuing inputs. </returns>
+		public static IMonitoredJobQueue<TInput, TOutput, Poison<TInput>> Create<TInput, TOutput>(IDurableJobQueueFactory durableQueueFactory,
 			Func<TInput, TOutput> jobAction)
 		{
-			if (null == durableQueue) { throw new ArgumentNullException("durableQueue"); }
-			if (null == jobAction) { throw new ArgumentNullException("jobAction"); }
-
-			return new MonitoredJobQueue<TInput, TOutput, Poison<TInput>>(durableQueue, jobAction, JobResultInspector.FromJobSpecification(jobAction));
+			return new MonitoredJobQueue<TInput, TOutput, Poison<TInput>>(CreateQueue<TInput, Poison<TInput>>(durableQueueFactory),
+				jobAction, JobResultInspector.FromJobSpecification(jobAction));
 		}
 
-		/// <summary>	Creates a simplified IMonitoredJobQueue interface given a durable storage queue and a job queue. </summary>
+		/// <summary>
+		/// Creates a simplified IMonitoredJobQueue interface given a durable queue factory, a job action and a results inspector.
+		/// </summary>
 		/// <remarks>	7/24/2011. </remarks>
 		/// <exception cref="ArgumentNullException">	Thrown when either the durable queue, job queue or results inspectors are null. </exception>
 		/// <typeparam name="TInput"> 	Type of the input. </typeparam>
 		/// <typeparam name="TOutput">	Type of the output. </typeparam>
 		/// <typeparam name="TPoison">	Type of the poison. </typeparam>
-		/// <param name="durableQueue">	   	A durable queue to which all job information is written in a fail-safe manner. </param>
-		/// <param name="jobAction">	   	The job action. </param>
-		/// <param name="resultsInspector">	The results inspector. </param>
+		/// <param name="durableQueueFactory">	A durable queue to which all job information is written in a fail-safe manner. </param>
+		/// <param name="jobAction">		  	The job action. </param>
+		/// <param name="resultsInspector">   	The results inspector. </param>
 		/// <returns>	An IMonitoredJobQueue instance that simplifies queuing inputs. </returns>
-		public static IMonitoredJobQueue<TInput, TOutput, TPoison> Create<TInput, TOutput, TPoison>(IDurableJobQueue<TInput, TPoison> durableQueue,
+		public static IMonitoredJobQueue<TInput, TOutput, TPoison> Create<TInput, TOutput, TPoison>(IDurableJobQueueFactory durableQueueFactory,
 			Func<TInput, TOutput> jobAction, IJobResultInspector<TInput, TOutput, TPoison> resultsInspector)
 		{
-			if (null == durableQueue) { throw new ArgumentNullException("durableQueue"); }
-			if (null == jobAction) { throw new ArgumentNullException("jobAction"); }
-			if (null == resultsInspector) { throw new ArgumentNullException("resultsInspector"); }
-
-			return new MonitoredJobQueue<TInput, TOutput, TPoison>(durableQueue, jobAction, resultsInspector);
+			return new MonitoredJobQueue<TInput, TOutput, TPoison>(CreateQueue<TInput, TPoison>(durableQueueFactory), jobAction, resultsInspector);
 		}
 
-		/// <summary>	Creates a simplified IMonitoredJobQueue interface given a durable storage queue and a job queue. </summary>
+		/// <summary>	Creates a simplified IMonitoredJobQueue interface given a durable queue factory and a job queue. </summary>
 		/// <remarks>	7/24/2011. </remarks>
 		/// <exception cref="ArgumentNullException">	Thrown when either the durable queue, job queue or results inspectors are null. </exception>
 		/// <typeparam name="TInput"> 	Type of the input. </typeparam>
 		/// <typeparam name="TOutput">	Type of the output. </typeparam>
 		/// <typeparam name="TPoison">	Type of the poison. </typeparam>
-		/// <param name="durableQueue">	   	A durable queue to which all job information is written in a fail-safe manner. </param>
-		/// <param name="jobAction">	   	The job action. </param>
-		/// <param name="resultsInspector">	The results inspector. </param>
+		/// <param name="durableQueueFactory">	A durable queue to which all job information is written in a fail-safe manner. </param>
+		/// <param name="jobAction">		  	The job action. </param>
+		/// <param name="resultsInspector">   	The results inspector. </param>
 		/// <returns>	An IMonitoredJobQueue instance that simplifies queuing inputs. </returns>
-		public static IMonitoredJobQueue<TInput, TOutput, TPoison> Create<TInput, TOutput, TPoison>(IDurableJobQueue<TInput, TPoison> durableQueue,
+		public static IMonitoredJobQueue<TInput, TOutput, TPoison> Create<TInput, TOutput, TPoison>(IDurableJobQueueFactory durableQueueFactory,
 			Func<TInput, TOutput> jobAction, Func<JobResult<TInput, TOutput>, JobQueueAction<TPoison>> resultsInspector)
 		{
-			if (null == durableQueue) { throw new ArgumentNullException("durableQueue"); }
-			if (null == jobAction) { throw new ArgumentNullException("jobAction"); }
-			if (null == resultsInspector) { throw new ArgumentNullException("resultsInspector"); }
-	
-			return new MonitoredJobQueue<TInput, TOutput, TPoison>(durableQueue, jobAction, resultsInspector);
+			return new MonitoredJobQueue<TInput, TOutput, TPoison>(CreateQueue<TInput, TPoison>(durableQueueFactory), jobAction, resultsInspector);
 		}
 
-		/// <summary>	Creates a simplified IMonitoredJobQueue interface given a durable storage queue and a job queue. </summary>
-		/// <remarks>	7/25/2011. </remarks>
-		/// <exception cref="ArgumentNullException">	Thrown when either the durable queue, job queue, results inspectors or scheduler are null. </exception>
+
+		/// <summary>	Creates a simplified IMonitoredJobQueue interface given a durable queue factory and a job action. </summary>
+		/// <remarks>	7/27/2011. </remarks>
+		/// <exception cref="ArgumentNullException">	Thrown when the factory or action are null. </exception>
+		/// <typeparam name="TInput"> 	Type of the input. </typeparam>
+		/// <typeparam name="TOutput">	Type of the output. </typeparam>
+		/// <param name="durableQueueFactory">					   	The durable queue factory. </param>
+		/// <param name="jobAction">							   	The job action. </param>
+		/// <param name="pollingInterval">						   	The polling interval. </param>
+		/// <param name="maxQueueItemsToPublishPerInterval">	The maximum queue items to publish per interval. </param>
+		/// <returns>	An IMonitoredJobQueue instance that simplifies queuing inputs. </returns>
+		public static IMonitoredJobQueue<TInput, TOutput, Poison<TInput>> Create<TInput, TOutput>(IDurableJobQueueFactory durableQueueFactory,
+			Func<TInput, TOutput> jobAction, TimeSpan pollingInterval, int maxQueueItemsToPublishPerInterval)
+		{
+			return new MonitoredJobQueue<TInput, TOutput, Poison<TInput>>(CreateQueue<TInput, Poison<TInput>>(durableQueueFactory),
+				jobAction, JobResultInspector.FromJobSpecification(jobAction));
+		}
+
+		/// <summary>
+		/// Creates a simplified IMonitoredJobQueue interface given a durable queue factory, a job action and a results inspector.
+		/// </summary>
+		/// <remarks>	7/24/2011. </remarks>
+		/// <exception cref="ArgumentNullException">	Thrown when either the durable queue, job queue or results inspectors are null. </exception>
 		/// <typeparam name="TInput"> 	Type of the input. </typeparam>
 		/// <typeparam name="TOutput">	Type of the output. </typeparam>
 		/// <typeparam name="TPoison">	Type of the poison. </typeparam>
-		/// <param name="durableQueue">	   	A durable queue to which all job information is written in a fail-safe manner. </param>
-		/// <param name="jobAction">	   	The job action. </param>
-		/// <param name="resultsInspector">	The results inspector. </param>
-		/// <param name="scheduler">	   	The scheduler. </param>
+		/// <param name="durableQueueFactory">					   	A durable queue to which all job information is written in a fail-safe
+		/// 														manner. </param>
+		/// <param name="jobAction">							   	The job action. </param>
+		/// <param name="resultsInspector">						   	The results inspector. </param>
+		/// <param name="pollingInterval">						   	The polling interval. </param>
+		/// <param name="maxQueueItemsToPublishPerInterval">	The maximum queue items to publish per interval. </param>
 		/// <returns>	An IMonitoredJobQueue instance that simplifies queuing inputs. </returns>
-		public static IMonitoredJobQueue<TInput, TOutput, TPoison> Create<TInput, TOutput, TPoison>(IDurableJobQueue<TInput, TPoison> durableQueue,
-			Func<TInput, TOutput> jobAction, Func<JobResult<TInput, TOutput>, JobQueueAction<TPoison>> resultsInspector, IScheduler scheduler)
+		public static IMonitoredJobQueue<TInput, TOutput, TPoison> Create<TInput, TOutput, TPoison>(IDurableJobQueueFactory durableQueueFactory,
+			Func<TInput, TOutput> jobAction, IJobResultInspector<TInput, TOutput, TPoison> resultsInspector,
+			TimeSpan pollingInterval, int maxQueueItemsToPublishPerInterval)
 		{
-			if (null == durableQueue) { throw new ArgumentNullException("durableQueue"); }
-			if (null == jobAction) { throw new ArgumentNullException("jobAction"); }
-			if (null == resultsInspector) { throw new ArgumentNullException("resultsInspector"); }
-			if (null == scheduler) { throw new ArgumentNullException("scheduler"); }
+			return new MonitoredJobQueue<TInput, TOutput, TPoison>(CreateQueue<TInput, TPoison>(durableQueueFactory), jobAction, resultsInspector);
+		}
 
-			return new MonitoredJobQueue<TInput, TOutput, TPoison>(durableQueue, jobAction, JobResultInspector.FromInspector(resultsInspector), scheduler);
+		/// <summary>	Creates a simplified IMonitoredJobQueue interface given a durable queue factory and a job queue. </summary>
+		/// <remarks>	7/24/2011. </remarks>
+		/// <exception cref="ArgumentNullException">	Thrown when either the durable queue, job queue or results inspectors are null. </exception>
+		/// <typeparam name="TInput"> 	Type of the input. </typeparam>
+		/// <typeparam name="TOutput">	Type of the output. </typeparam>
+		/// <typeparam name="TPoison">	Type of the poison. </typeparam>
+		/// <param name="durableQueueFactory">					   	A durable queue to which all job information is written in a fail-safe
+		/// 														manner. </param>
+		/// <param name="jobAction">							   	The job action. </param>
+		/// <param name="">										   	The. </param>
+		/// <param name="resultsInspector">						   	The results inspector. </param>
+		/// <param name="pollingInterval">						   	The polling interval. </param>
+		/// <param name="maxQueueItemsToPublishPerInterval">	The maximum queue items to publish per interval. </param>
+		/// <returns>	An IMonitoredJobQueue instance that simplifies queuing inputs. </returns>
+		public static IMonitoredJobQueue<TInput, TOutput, TPoison> Create<TInput, TOutput, TPoison>(IDurableJobQueueFactory durableQueueFactory,
+			Func<TInput, TOutput> jobAction, Func<JobResult<TInput, TOutput>, JobQueueAction<TPoison>> resultsInspector, 
+			TimeSpan pollingInterval, int maxQueueItemsToPublishPerInterval)
+		{
+			return new MonitoredJobQueue<TInput, TOutput, TPoison>(CreateQueue<TInput, TPoison>(durableQueueFactory), jobAction, resultsInspector);
+		}
+
+		internal static IMonitoredJobQueue<TInput, TOutput, TPoison> Create<TInput, TOutput, TPoison>(IDurableJobQueueFactory durableQueueFactory,
+			Func<TInput, TOutput> jobAction, Func<JobResult<TInput, TOutput>, JobQueueAction<TPoison>> resultsInspector, 
+			TimeSpan pollingInterval, int maxQueueItemsToPublishPerInterval, IScheduler scheduler)
+		{
+			return new MonitoredJobQueue<TInput, TOutput, TPoison>(CreateQueue<TInput, TPoison>(durableQueueFactory), jobAction, JobResultInspector.FromInspector(resultsInspector),
+				pollingInterval, maxQueueItemsToPublishPerInterval, scheduler);
 		}
 	}
 }
