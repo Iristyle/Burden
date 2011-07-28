@@ -22,13 +22,14 @@ namespace EPS.Concurrency.Tests.Unit
 		public void Constructor_ThrowsOnNullScheduler()
 		{
 			var jobStorage = A.Fake<IDurableJobQueue<Incoming, Incoming>>();
-			Assert.Throws<ArgumentNullException>(() => new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, DurableJobQueueMonitor.DefaultPollingInterval, 500, null));
+			Assert.Throws<ArgumentNullException>(() => new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, 500, DurableJobQueueMonitor.DefaultPollingInterval, null));
 		}
 
 		[Fact]
 		public void Constructor_ThrowsOnNullDurableStorage()
 		{
-			Assert.Throws<ArgumentNullException>(() => new DurableJobQueueMonitor<Incoming, Incoming>(null, DurableJobQueueMonitor.DefaultPollingInterval, 500, A.Dummy<IScheduler>()));
+			Assert.Throws<ArgumentNullException>(() => new DurableJobQueueMonitor<Incoming, Incoming>(null, 500, DurableJobQueueMonitor.DefaultPollingInterval, 
+A.Dummy<IScheduler>()));
 		}
 
 		[Fact]
@@ -41,7 +42,9 @@ namespace EPS.Concurrency.Tests.Unit
 		public void Constructor_ThrowsOnLargerThanAllowedMaximumQueueSize()
 		{
 			var jobStorage = A.Fake<IDurableJobQueue<Incoming, Incoming>>();
-			Assert.Throws<ArgumentOutOfRangeException>(() => new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, DurableJobQueueMonitor.DefaultPollingInterval, DurableJobQueueMonitor.MaxAllowedQueueItemsToPublishPerInterval + 1, A.Dummy<IScheduler>()));
+			Assert.Throws<ArgumentOutOfRangeException>(() => new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, 
+DurableJobQueueMonitor.MaxAllowedQueueItemsToPublishPerInterval + 1, DurableJobQueueMonitor.DefaultPollingInterval, 
+A.Dummy<IScheduler>()));
 		}
 
 		[Fact]
@@ -60,7 +63,8 @@ namespace EPS.Concurrency.Tests.Unit
 		public void Constructor_ThrowsOnSmallerThanMinimumAllowedQueueSize()
 		{
 			var jobStorage = A.Fake<IDurableJobQueue<Incoming, Incoming>>();
-			Assert.Throws<ArgumentOutOfRangeException>(() => new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, DurableJobQueueMonitor.DefaultPollingInterval, 0, A.Dummy<IScheduler>()));
+			Assert.Throws<ArgumentOutOfRangeException>(() => new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, 0, DurableJobQueueMonitor.DefaultPollingInterval, 
+A.Dummy<IScheduler>()));
 		}
 
 		[Fact]
@@ -79,7 +83,8 @@ namespace EPS.Concurrency.Tests.Unit
 		public void Constructor_ThrowsOnLargerThanAllowedMaximumPollingInterval()
 		{
 			var jobStorage = A.Fake<IDurableJobQueue<Incoming, Incoming>>();
-			Assert.Throws<ArgumentOutOfRangeException>(() => new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, DurableJobQueueMonitor.MaximumAllowedPollingInterval + TimeSpan.FromSeconds(1), 500, A.Dummy<IScheduler>()));
+			Assert.Throws<ArgumentOutOfRangeException>(() => new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, 500, 
+DurableJobQueueMonitor.MaximumAllowedPollingInterval + TimeSpan.FromSeconds(1), A.Dummy<IScheduler>()));
 		}
 
 		[Fact]
@@ -92,7 +97,8 @@ namespace EPS.Concurrency.Tests.Unit
 		public void Constructor_ThrowsOnSmallerThanMinimumAllowedPollingInterval()
 		{
 			var jobStorage = A.Fake<IDurableJobQueue<Incoming, Incoming>>();
-			Assert.Throws<ArgumentOutOfRangeException>(() => new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, DurableJobQueueMonitor.MinimumAllowedPollingInterval - TimeSpan.FromTicks(1), 500, A.Dummy<IScheduler>()));
+			Assert.Throws<ArgumentOutOfRangeException>(() => new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, 500, 
+DurableJobQueueMonitor.MinimumAllowedPollingInterval - TimeSpan.FromTicks(1), A.Dummy<IScheduler>()));
 		}
 
 		[Fact]
@@ -124,7 +130,7 @@ namespace EPS.Concurrency.Tests.Unit
 		{
 			var jobStorage = A.Fake<IDurableJobQueue<Incoming, Incoming>>();
 			var scheduler = new HistoricalScheduler();
-			var monitor = new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, DurableJobQueueMonitor.DefaultPollingInterval, 20, scheduler);
+			var monitor = new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, 20, DurableJobQueueMonitor.DefaultPollingInterval, scheduler);
 
 			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).Returns(new Incoming() { Id = 1 });
 
@@ -138,7 +144,7 @@ namespace EPS.Concurrency.Tests.Unit
 		{
 			var jobStorage = A.Fake<IDurableJobQueue<Incoming, Incoming>>();
 			var scheduler = new HistoricalScheduler();
-			var monitor = new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, DurableJobQueueMonitor.DefaultPollingInterval, 20, scheduler);
+			var monitor = new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, 20, DurableJobQueueMonitor.DefaultPollingInterval, scheduler);
 
 			//X items + a null terminator per each elapsed interval
 			var incomingItems = Enumerable.Repeat(new Incoming() { Id = 2 }, 5)
@@ -163,7 +169,7 @@ namespace EPS.Concurrency.Tests.Unit
 		{
 			var jobStorage = A.Fake<IDurableJobQueue<Incoming, Incoming>>();
 			var scheduler = new HistoricalScheduler();
-			var monitor = new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, DurableJobQueueMonitor.DefaultPollingInterval, 20, scheduler);
+			var monitor = new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, 20, DurableJobQueueMonitor.DefaultPollingInterval, scheduler);
 
 			var queuedItems = Enumerable.Repeat(new Incoming() { Id = 1 }, 5)
 				.Concat(Enumerable.Repeat(new Incoming() { Id = 2 }, 5))
@@ -183,7 +189,7 @@ namespace EPS.Concurrency.Tests.Unit
 		{
 			var jobStorage = A.Fake<IDurableJobQueue<Incoming, Incoming>>();
 			var scheduler = new HistoricalScheduler();
-			var monitor = new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, DurableJobQueueMonitor.DefaultPollingInterval, 20, scheduler);
+			var monitor = new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, 20, DurableJobQueueMonitor.DefaultPollingInterval, scheduler);
 
 			var queuedItems = Enumerable.Repeat(new Incoming() { Id = 1 }, 5)
 				.Concat(new Incoming[] { null })
@@ -205,7 +211,7 @@ namespace EPS.Concurrency.Tests.Unit
 		{
 			var jobStorage = A.Fake<IDurableJobQueue<Incoming, Incoming>>();
 			var scheduler = new HistoricalScheduler();
-			var monitor = new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, DurableJobQueueMonitor.DefaultPollingInterval, 20, scheduler);
+			var monitor = new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, 20, DurableJobQueueMonitor.DefaultPollingInterval, scheduler);
 
 			List<Incoming> incomingItems = new List<Incoming>();
 
@@ -227,7 +233,7 @@ namespace EPS.Concurrency.Tests.Unit
 		{
 			var jobStorage = A.Fake<IDurableJobQueue<Incoming, Incoming>>();
 			var scheduler = new HistoricalScheduler();
-			var monitor = new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, DurableJobQueueMonitor.DefaultPollingInterval, 20, scheduler);
+			var monitor = new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, 20, DurableJobQueueMonitor.DefaultPollingInterval, scheduler);
 
 			List<Incoming> incomingItems = new List<Incoming>();
 
@@ -255,7 +261,8 @@ namespace EPS.Concurrency.Tests.Unit
 			int maxToSlurp = 3;
 			var jobStorage = A.Fake<IDurableJobQueue<Incoming, Incoming>>();
 			var scheduler = new HistoricalScheduler();
-			var monitor = new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, DurableJobQueueMonitor.DefaultPollingInterval, maxToSlurp, scheduler);
+			var monitor = new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, maxToSlurp, DurableJobQueueMonitor.DefaultPollingInterval, 
+scheduler);
 
 			List<Incoming> incomingItems = new List<Incoming>();
 
@@ -271,7 +278,8 @@ namespace EPS.Concurrency.Tests.Unit
 			int maxToSlurp = 3;
 			var jobStorage = A.Fake<IDurableJobQueue<Incoming, Incoming>>();
 			var scheduler = new HistoricalScheduler();
-			var monitor = new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, DurableJobQueueMonitor.DefaultPollingInterval, maxToSlurp, scheduler);
+			var monitor = new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, maxToSlurp, DurableJobQueueMonitor.DefaultPollingInterval, 
+scheduler);
 
 			List<Incoming> incomingItems = new List<Incoming>();
 

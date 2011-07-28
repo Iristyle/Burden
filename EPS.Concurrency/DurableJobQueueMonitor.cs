@@ -37,16 +37,19 @@ namespace EPS.Concurrency
 		/// <remarks>	7/28/2011. </remarks>
 		/// <exception cref="ArgumentNullException">	  	Thrown when either the queue or scheduler are null. </exception>
 		/// <exception cref="ArgumentOutOfRangeException">	Thrown when the pollingInterval is below the minimum allowed threshold or greater
-		/// 												than the maximum allowed threshold.  Thrown when the items to publish per interval is
-		/// 												less than 1 or greater than the maximum allowed threshold. </exception>
+		/// than the maximum allowed threshold.  Thrown when the items to publish per interval is
+		/// less than 1 or greater than the maximum allowed threshold.  </exception>
 		/// <param name="durableJobQueue">						Queue of durable jobs. </param>
-		/// <param name="pollingInterval">						The polling interval. </param>
 		/// <param name="maxQueueItemsToPublishPerInterval">	The maximum queue items to publish per interval. </param>
+		/// <param name="pollingInterval">						The polling interval. </param>
 		/// <param name="scheduler">							The scheduler. </param>
-		internal DurableJobQueueMonitor(IDurableJobQueue<TQueue, TQueuePoison> durableJobQueue, TimeSpan pollingInterval, int maxQueueItemsToPublishPerInterval, IScheduler scheduler)
+		internal DurableJobQueueMonitor(IDurableJobQueue<TQueue, TQueuePoison> durableJobQueue, 
+			int maxQueueItemsToPublishPerInterval, TimeSpan pollingInterval, IScheduler scheduler)
 		{
-			if (null == durableJobQueue) { throw new ArgumentNullException("durableJobQueue"); }
-			
+			if (null == durableJobQueue)
+			{
+				throw new ArgumentNullException("durableJobQueue");
+			}
 			if (pollingInterval > DurableJobQueueMonitor.MaximumAllowedPollingInterval)
 			{
 				throw new ArgumentOutOfRangeException(String.Format("must be less than {0:c}", DurableJobQueueMonitor.
@@ -60,15 +63,17 @@ namespace EPS.Concurrency
 
 			if (maxQueueItemsToPublishPerInterval > DurableJobQueueMonitor.MaxAllowedQueueItemsToPublishPerInterval)
 			{
-				throw new ArgumentOutOfRangeException("maxQueueItemsToPublishPerInterval", String.Format("limited to {0} items to publish per interval", DurableJobQueueMonitor.MaxAllowedQueueItemsToPublishPerInterval));
+				throw new ArgumentOutOfRangeException("maxQueueItemsToPublishPerInterval", String.Format(
+				"limited to {0} items to publish per interval", DurableJobQueueMonitor.MaxAllowedQueueItemsToPublishPerInterval));
 			}
 			if (maxQueueItemsToPublishPerInterval < 1)
 			{
 				throw new ArgumentOutOfRangeException("maxQueueItemsToPublishPerInterval", "must be at least 1");
 			}
-			
-			if (null == scheduler) { throw new ArgumentNullException("scheduler"); }
-
+			if (null == scheduler)
+			{
+				throw new ArgumentNullException("scheduler");
+			}
 
 			this.durableJobQueue = durableJobQueue;
 			this.maxQueueItemsToPublishPerInterval = maxQueueItemsToPublishPerInterval;
@@ -79,12 +84,12 @@ namespace EPS.Concurrency
 
 			//fire up our polling on an interval, slurping up all non-nulls from 'queued', to a max of X items, but don't start until connect is called
 			syncRequestPublisher = Observable.Interval(pollingInterval, scheduler)
-				.SelectMany(interval =>
-					ReadQueuedItems()
-					.TakeWhile(request => null != request)
-					.Take(maxQueueItemsToPublishPerInterval))
-				.Publish()
-				.RefCount();
+			.SelectMany(interval =>
+			ReadQueuedItems()
+			.TakeWhile(request => null != request)
+			.Take(maxQueueItemsToPublishPerInterval))
+			.Publish()
+			.RefCount();
 		}
 
 		private IEnumerable<TQueue> ReadQueuedItems()
@@ -155,10 +160,11 @@ namespace EPS.Concurrency
 		/// 												less than 1 or greater than the maximum allowed threshold. </exception>
 		/// <param name="durableJobQueue">						Queue of durable jobs. </param>
 		/// <param name="maxQueueItemsToPublishPerInterval">	The maximum queue items to publish per interval. </param>
-		public static DurableJobQueueMonitor<TQueue, TQueuePoison> Create<TQueue, TQueuePoison>(IDurableJobQueue<TQueue, TQueuePoison> durableJobQueue, int maxQueueItemsToPublishPerInterval)
+		public static DurableJobQueueMonitor<TQueue, TQueuePoison> Create<TQueue, TQueuePoison>(IDurableJobQueue<TQueue, 
+		TQueuePoison> durableJobQueue, int maxQueueItemsToPublishPerInterval)
 		{
-			return new DurableJobQueueMonitor<TQueue, TQueuePoison>(durableJobQueue, DefaultPollingInterval, 
-			maxQueueItemsToPublishPerInterval, LocalScheduler.Default);
+			return new DurableJobQueueMonitor<TQueue, TQueuePoison>(durableJobQueue, maxQueueItemsToPublishPerInterval, 
+			DefaultPollingInterval, LocalScheduler.Default);
 		}
 
 		/// <summary>	Constructs a new monitor instance, given a durable job, the maximum number of items to publish over the observable per polling interval, and the polling interval. </summary>
@@ -169,9 +175,11 @@ namespace EPS.Concurrency
 		/// <param name="durableJobQueue">						Queue of durable jobs. </param>
 		/// <param name="pollingInterval">						The polling interval. </param>
 		/// <param name="maxQueueItemsToPublishPerInterval">	The maximum queue items to publish per interval. </param>
-		public static DurableJobQueueMonitor<TQueue, TQueuePoison> Create<TQueue, TQueuePoison>(IDurableJobQueue<TQueue, TQueuePoison> durableJobQueue, int maxQueueItemsToPublishPerInterval, TimeSpan pollingInterval)
+		public static DurableJobQueueMonitor<TQueue, TQueuePoison> Create<TQueue, TQueuePoison>(IDurableJobQueue<TQueue, 
+		TQueuePoison> durableJobQueue, int maxQueueItemsToPublishPerInterval, TimeSpan pollingInterval)
 		{
-			return new DurableJobQueueMonitor<TQueue, TQueuePoison>(durableJobQueue, pollingInterval, maxQueueItemsToPublishPerInterval, LocalScheduler.Default);
+			return new DurableJobQueueMonitor<TQueue, TQueuePoison>(durableJobQueue, maxQueueItemsToPublishPerInterval, 
+			pollingInterval, LocalScheduler.Default);
 		}
 	}
 }
