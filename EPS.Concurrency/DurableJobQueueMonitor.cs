@@ -111,6 +111,8 @@ namespace EPS.Concurrency
 		}
 	}
 
+	/// <summary>	A static factory class that hides the generics involved in creating a durable job queue monitor.  </summary>
+	/// <remarks>	7/28/2011. </remarks>
 	public static class DurableJobQueueMonitor
 	{
 		private static TimeSpan minimumAllowedPollingInterval = TimeSpan.FromSeconds(3);
