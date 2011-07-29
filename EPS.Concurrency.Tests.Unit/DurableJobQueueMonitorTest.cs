@@ -6,6 +6,7 @@ using EPS.Utility;
 using FakeItEasy;
 using Ploeh.AutoFixture;
 using Xunit;
+using Xunit.Extensions;
 
 namespace EPS.Concurrency.Tests.Unit
 {
@@ -123,6 +124,25 @@ DurableJobQueueMonitor.MinimumAllowedPollingInterval - TimeSpan.FromTicks(1), A.
 			var monitor = DurableJobQueueMonitor.Create(jobStorage, 500);
 
 			A.CallTo(() => jobStorage.ResetAllPendingToQueued()).MustHaveHappened(Repeated.Exactly.Once);
+		}
+
+		[Theory]
+		[InlineData(25)]
+		[InlineData(1)]
+		public void Monitor_PollsOnSpecifiedInterval(int minutes)
+		{
+			var jobStorage = A.Fake<IDurableJobQueue<Incoming, Incoming>>();
+			var scheduler = new HistoricalScheduler();
+			var interval = TimeSpan.FromMinutes(minutes);
+			var monitor = new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, 20, interval, scheduler);
+			monitor.Subscribe();
+
+			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).Returns(new Incoming() { Id = 1 });
+
+			//this is a little hacky, but give ourselves a 2 second timespan to make the call against our fake
+			scheduler.AdvanceBy(interval - TimeSpan.FromSeconds(2));
+			
+			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).MustNotHaveHappened();
 		}
 
 		[Fact]
