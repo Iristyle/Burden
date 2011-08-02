@@ -25,7 +25,7 @@ namespace EPS.Concurrency
 
 		/// <summary>	Cancel queued jobs and wait for executing jobs to complete. </summary>
 		/// <remarks>	This should automatically be called upon Dispose by classes implementing this interface. </remarks>
-		/// <param name="timeSpan">	The time span to block until terminating. </param>
+		/// <param name="timeout">	The time span to block until terminating. </param>
 		void CancelQueuedAndWaitForExecutingJobsToComplete(TimeSpan timeout);
 
 		/// <summary>	Gets the number of running jobs from the job execution queue. </summary>
@@ -39,6 +39,13 @@ namespace EPS.Concurrency
 		/// <summary>	Gets the maximum items to publish per interval for this instance. </summary>
 		/// <value>	The maximum queue items to publish per interval for this instance. </value>
 		int MaxQueueItemsToPublishPerInterval { get; }
+
+		/// <summary>	Gets or sets the maximum number of concurrent jobs allowed to execute for this queue. </summary>
+		/// <remarks>
+		/// Implementers should not throw an exception if the max is set too high, but rather assume the maximum allowable value.
+		/// </remarks>
+		/// <value>	The maximum allowed concurrent jobs. </value>
+		int MaxConcurrent { get; set; }
 
 		/// <summary>	Gets the polling interval. </summary>
 		/// <value>	The polling interval. </value>
