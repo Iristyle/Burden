@@ -48,6 +48,7 @@ namespace EPS.Concurrency.Tests.Unit
 			public bool ExpectedNumberOfJobsFiredUp { get; set; }
 			public ManualResetEventSlim PrimaryJobPauser { get; set; }
 			public ManualResetEventSlim SecondaryJobPauser { get; set; }
+			public ManualResetEventSlim AllJobsForIterationLaunched { get; set; }
 			public IJobExecutionQueue<TJobInput, TJobOutput> Queue { get; set; }
 		}
 
@@ -57,13 +58,13 @@ namespace EPS.Concurrency.Tests.Unit
 			var status = new JobExecutionStatus()
 			{
 				Queue = maxConcurrentJobQueueFactory(Scheduler.Immediate, AutoJobExecutionQueue<TJobInput, TJobOutput>.DefaultConcurrent, startUpTo) as IJobExecutionQueue<TJobInput, TJobOutput>,
+				AllJobsForIterationLaunched = new ManualResetEventSlim(false),
 				PrimaryJobPauser = new ManualResetEventSlim(false),
 				SecondaryJobPauser = new ManualResetEventSlim(false),
 				RemainingJobs = jobsToAdd
 			};
 
-			ManualResetEventSlim allJobsLaunched = new ManualResetEventSlim(false),
-				firstGateCrossedByAllJobs = new ManualResetEventSlim(false),
+			ManualResetEventSlim firstGateCrossedByAllJobs = new ManualResetEventSlim(false),
 				secondGateCrossedByAllJobs = new ManualResetEventSlim(false);
 
 			int jobCounter = 0, firstGateCounter = 0, secondGateCounter = 0;
@@ -72,9 +73,9 @@ namespace EPS.Concurrency.Tests.Unit
 			{
 				status.Queue.Add(A.Dummy<TJobInput>(), jobInput =>
 				{
-					int expectedCounterValue = Math.Min(startUpTo, status.RemainingJobs);
+					int expectedCounterValue = Math.Min(status.Queue.MaxConcurrent, Math.Min(startUpTo, status.RemainingJobs));
 					if (Interlocked.Increment(ref jobCounter) == expectedCounterValue)
-						allJobsLaunched.Set();
+						status.AllJobsForIterationLaunched.Set();
 
 					//we have to get a bit complex here by controlling automatic job execution with 2 locks
 					status.PrimaryJobPauser.Wait();
@@ -97,11 +98,11 @@ namespace EPS.Concurrency.Tests.Unit
 			for (int j = 0; j < iterations; j++)
 			{
 				//wait for all jobs to start, then reset counter, allow them to complete, and reset allJobsLaunched
-				allJobsLaunched.Wait(TimeSpan.FromSeconds(5));
+				status.AllJobsForIterationLaunched.Wait(TimeSpan.FromSeconds(5));
 					//throw new ApplicationException();
 				Interlocked.Exchange(ref jobCounter, 0);
 
-				allJobsLaunched.Reset();
+				status.AllJobsForIterationLaunched.Reset();
 				status.RemainingJobs = status.Queue.QueuedCount;
 				//let the next set begin to flow through, by unlocking the first gate
 				status.PrimaryJobPauser.Set();
@@ -125,7 +126,7 @@ namespace EPS.Concurrency.Tests.Unit
 					Interlocked.Exchange(ref secondGateCounter, 0);
 				}
 
-				status.SecondaryJobPauser.Reset();				
+				status.SecondaryJobPauser.Reset();
 			}
 
 			return status;
@@ -147,6 +148,39 @@ namespace EPS.Concurrency.Tests.Unit
 			var status = WaitForMaxConcurrentJobsToStart(jobsToAdd, startUpTo, iterations, jobShouldThrow);
 
 			Assert.Equal(Math.Max(jobsToAdd - (startUpTo * iterations), 0), status.Queue.QueuedCount);
+
+			status.Queue.CancelOutstandingJobs();
+			status.PrimaryJobPauser.Set();
+			status.SecondaryJobPauser.Set();
+		}
+
+		[Theory]
+		[InlineData(25, 5, 1)]
+		[InlineData(8, 4, 2)]
+		public void MaxConcurrent_OnJobQueueInterface_RestrictsNewJobsCountToGivenValue(int jobsToAdd, int startUpTo, int thenStartUpTo)
+		{
+			var manualResetEvent = new ManualResetEventSlim(false);
+			var status = WaitForMaxConcurrentJobsToStart(jobsToAdd, startUpTo, 1, false);
+			status.Queue.MaxConcurrent = thenStartUpTo;
+
+			int i = 0;
+			status.Queue.WhenJobCompletes.Subscribe(result =>
+			{
+				if (Interlocked.Increment(ref i) == startUpTo)
+					manualResetEvent.Set();
+			});
+
+			//release the jobs, and now only the new count should be running
+			status.PrimaryJobPauser.Set();
+			status.SecondaryJobPauser.Set();
+			status.PrimaryJobPauser.Reset();
+
+			//wait on jobs to complete
+			manualResetEvent.Wait(TimeSpan.FromSeconds(3));
+			//then to launch
+			status.AllJobsForIterationLaunched.Wait(TimeSpan.FromSeconds(2));
+
+			Assert.Equal(thenStartUpTo, status.Queue.RunningCount);
 
 			status.Queue.CancelOutstandingJobs();
 			status.PrimaryJobPauser.Set();
