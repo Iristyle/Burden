@@ -14,6 +14,13 @@ namespace EPS.Concurrency
 	/// <typeparam name="TJobOutput">	Type of the job output. Use <see cref="System.Reactive.Unit"/> for no output. </typeparam>
 	public interface IJobExecutionQueue<TJobInput, TJobOutput>
 	{
+		/// <summary>	Gets or sets the maximum number of concurrent jobs allowed to execute for this queue. </summary>
+		/// <remarks>
+		/// Implementers should not throw an exception if the max is set too high, but rather assume the maximum allowable value.
+		/// </remarks>
+		/// <value>	The maximum allowed concurrent jobs. </value>
+		int MaxConcurrent { get; set; }
+
 		/// <summary>
 		/// The Observable that monitors job completion, where completion can be either run to completion, exception or cancellation.
 		/// </summary>
@@ -49,6 +56,7 @@ namespace EPS.Concurrency
 		bool StartNext();
 
 		/// <summary>	Starts up to the given number of jobs in the queue concurrently. </summary>
+		/// <remarks>	The number of jobs started is the lower of the value given OR the MaxConcurrent value set on this instance. </remarks>
 		/// <param name="maxConcurrentlyRunning">	The maximum concurrently running jobs to allow. </param>
 		/// <returns>	The number of jobs started. </returns>
 		int StartUpTo(int maxConcurrentlyRunning);

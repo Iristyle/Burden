@@ -88,7 +88,7 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact]
 		public void Add_AsyncOverload_RunsJob()
 		{
-			Assert.True(WaitsForJobToFinish(3, true));
+			Assert.True(WaitsForJobToFinish(4, true));
 		}
 
 		private bool CompletedJobCallsJobCompleteObservable(int secondsToWait, bool useAsyncOverload)
@@ -110,6 +110,35 @@ namespace EPS.Concurrency.Tests.Unit
 			queue.StartNext();
 
 			return completedEvent.Wait(TimeSpan.FromSeconds(secondsToWait));
+		}
+
+		[Fact]
+		public void MaxConcurrent_EqualsOne_WhenSetBelowMinimumAllowed()
+		{
+			var queue = jobQueueFactory(Scheduler.Immediate);
+			queue.MaxConcurrent = 0;
+
+			Assert.Equal(1, queue.MaxConcurrent);
+		}
+
+		[Fact]
+		public void MaxConcurrent_IgnoresSetValue_WhenSetAboveMaxAllowed()
+		{
+			var queue = jobQueueFactory(Scheduler.Immediate);
+			queue.MaxConcurrent = int.MaxValue;
+
+			Assert.NotEqual(int.MaxValue, queue.MaxConcurrent);
+		}
+
+		[Theory]
+		[InlineData(5)]
+		[InlineData(25)]
+		public void MaxConcurrent_Equals_SetValue(int maxConcurrent)
+		{
+			var queue = jobQueueFactory(Scheduler.Immediate);
+			queue.MaxConcurrent = maxConcurrent;
+
+			Assert.Equal(maxConcurrent, queue.MaxConcurrent);
 		}
 
 		[Fact]
@@ -244,9 +273,10 @@ namespace EPS.Concurrency.Tests.Unit
 			Assert.Equal(0, queue.RunningCount);
 		}
 
-		public IJobExecutionQueue<TJobInput, TJobOutput> NewQueueWithPausedJobs(int jobsCount, int maxConcurrent, ManualResetEventSlim jobWaitPrimitive)
+		public IJobExecutionQueue<TJobInput, TJobOutput> NewQueueWithPausedJobs(int jobsCount, int startUpTo, ManualResetEventSlim jobWaitPrimitive, int maxConcurrent)
 		{
 			var queue = jobQueueFactory(Scheduler.Immediate);
+			queue.MaxConcurrent = maxConcurrent;
 			for (int j = 0; j < jobsCount; j++)
 			{
 				queue.Add(A.Dummy<TJobInput>(), input =>
@@ -256,60 +286,68 @@ namespace EPS.Concurrency.Tests.Unit
 				});
 			}
 
-			queue.StartUpTo(maxConcurrent);
+			queue.StartUpTo(startUpTo);
 
 			return queue;
 		}
 
 		[Theory]
-		[InlineData(20, 5)]
-		[InlineData(1, 1)]
-		[InlineData(1, 2)]
-		public void RunningCount_AdheresToMaxSpecifiedBy_StartupToCount(int fakeJobsToCreate, int maxConcurrent)
+		[InlineData(20, 5, 4)]
+		[InlineData(10, 3, 5)]
+		[InlineData(1, 1, 10)]
+		[InlineData(1, 2, 10)]
+		[InlineData(2, 2, 3)]
+		public void RunningCount_AdheresToMaxSpecifiedBy_StartupToCountAndMaxConcurrentValue(int fakeJobsToCreate, int startUpTo, int maxConcurrent)
 		{
 			var jobLock = new ManualResetEventSlim(false);
-			var queue = NewQueueWithPausedJobs(fakeJobsToCreate, maxConcurrent, jobLock);
-			Assert.Equal(Math.Min(fakeJobsToCreate, maxConcurrent), queue.RunningCount);
+			var queue = NewQueueWithPausedJobs(fakeJobsToCreate, startUpTo, jobLock, maxConcurrent);
+			int expectedToStart = Math.Min(fakeJobsToCreate, startUpTo),
+				shouldRun = Math.Min(maxConcurrent, expectedToStart);
+			Assert.Equal(shouldRun, queue.RunningCount);
 
 			jobLock.Set();
 			queue.CancelOutstandingJobs();
 		}
 
 		[Theory]
-		[InlineData(8, 2)]
-		[InlineData(2, 3)]
-		public void QueuedCount_AdheresToMaxSpecifiedBy_StartupToCount(int fakeJobsToCreate, int maxConcurrent)
+		[InlineData(8, 2, 2)]
+		[InlineData(2, 3, 2)]
+		[InlineData(10, 6, 5)]
+		[InlineData(1, 1, 10)]
+		public void QueuedCount_AdheresToMaxSpecifiedBy_StartupToCount(int fakeJobsToCreate, int startUpTo, int maxConcurrent)
 		{
 			var jobLock = new ManualResetEventSlim(false);
-			var queue = NewQueueWithPausedJobs(fakeJobsToCreate, maxConcurrent, jobLock);
-			Assert.Equal(Math.Max(0, fakeJobsToCreate - maxConcurrent), queue.QueuedCount);
+			var queue = NewQueueWithPausedJobs(fakeJobsToCreate, startUpTo, jobLock, maxConcurrent);
+			int expectedToStart = Math.Min(fakeJobsToCreate, startUpTo),
+				shouldRun = Math.Min(maxConcurrent, expectedToStart);
+			Assert.Equal(Math.Max(0, fakeJobsToCreate - shouldRun), queue.QueuedCount);
 
 			jobLock.Set();
 			queue.CancelOutstandingJobs();
 		}
 
 		[Theory]
-		[InlineData(20, 5)]
-		[InlineData(1, 1)]
-		[InlineData(1, 2)]
-		public void CancelOutstandingJobs_DoesNotCancelQueuedJobs(int fakeJobsToCreate, int maxConcurrent)
+		[InlineData(20, 5, 30)]
+		[InlineData(1, 1, 30)]
+		[InlineData(1, 2, 30)]
+		public void CancelOutstandingJobs_DoesNotCancelQueuedJobs(int fakeJobsToCreate, int startUpTo, int maxConcurrent)
 		{
 			var jobLock = new ManualResetEventSlim(false);
-			var queue = NewQueueWithPausedJobs(fakeJobsToCreate, maxConcurrent, jobLock);
+			var queue = NewQueueWithPausedJobs(fakeJobsToCreate, startUpTo, jobLock, maxConcurrent);
 			queue.CancelOutstandingJobs();
 
-			Assert.Equal(Math.Min(fakeJobsToCreate, maxConcurrent), queue.RunningCount);
+			Assert.Equal(Math.Min(fakeJobsToCreate, Math.Min(startUpTo, queue.MaxConcurrent)), queue.RunningCount);
 			jobLock.Set();
 		}
 
 		[Theory]
-		[InlineData(20, 5)]
-		[InlineData(1, 1)]
-		[InlineData(1, 2)]
-		public void CancelOutstandingJobs_OnlyClearsQueuedCalls(int fakeJobsToCreate, int maxConcurrent)
+		[InlineData(20, 5, 30)]
+		[InlineData(1, 1, 30)]
+		[InlineData(1, 2, 30)]
+		public void CancelOutstandingJobs_OnlyClearsQueuedCalls(int fakeJobsToCreate, int startUpTo, int maxConcurrent)
 		{
 			var jobLock = new ManualResetEventSlim(false);
-			var queue = NewQueueWithPausedJobs(fakeJobsToCreate, maxConcurrent, jobLock);
+			var queue = NewQueueWithPausedJobs(fakeJobsToCreate, startUpTo, jobLock, maxConcurrent);
 			queue.CancelOutstandingJobs();
 
 			Assert.Equal(0, queue.QueuedCount);
@@ -321,7 +359,7 @@ namespace EPS.Concurrency.Tests.Unit
 		[InlineData(1, 1)]
 		[InlineData(1, 2)]
 		[InlineData(30, 30)]
-		public void StartUpTo_ReturnedCount_MatchesActualRunningJobCount(int fakeJobsToCreate, int maxConcurrent)
+		public void StartUpTo_ReturnedCount_MatchesActualRunningJobCount(int fakeJobsToCreate, int startUpTo)
 		{
 			var jobPauser = new ManualResetEventSlim(false);
 
@@ -335,28 +373,27 @@ namespace EPS.Concurrency.Tests.Unit
 				});
 			}
 
-			int started = queue.StartUpTo(maxConcurrent);
+			int started = queue.StartUpTo(startUpTo);
 
 			Assert.Equal(queue.RunningCount, started);
 			queue.CancelOutstandingJobs();
 			jobPauser.Set();
 		}
 
-
 		[Theory]
-		[InlineData(20, 5)]
-		[InlineData(1, 1)]
-		[InlineData(1, 2)]
-		public void StartUpTo_CalledMultipleTimes_DoesNotStartNewJobs_WhenMaxConcurrentAlreadyRunning(int fakeJobsToCreate, int maxConcurrent)
+		[InlineData(20, 5, 30)]
+		[InlineData(1, 1, 30)]
+		[InlineData(1, 2, 30)]
+		public void StartUpTo_CalledMultipleTimes_DoesNotStartNewJobs_WhenMaxConcurrentAlreadyRunning(int fakeJobsToCreate, int startUpTo, int maxConcurrent)
 		{
 			var jobPauser = new ManualResetEventSlim(false);
-			var queue = NewQueueWithPausedJobs(fakeJobsToCreate, maxConcurrent, jobPauser);
+			var queue = NewQueueWithPausedJobs(fakeJobsToCreate, startUpTo, jobPauser, maxConcurrent);
 
 			//maxConcurrent jobs are already running, so this should not launch anything new
 			int newJobsLaunched = 0;
 			for (int i = 0; i < 20; i++)
 			{
-				newJobsLaunched += queue.StartUpTo(maxConcurrent);
+				newJobsLaunched += queue.StartUpTo(startUpTo);
 			}
 
 			Assert.Equal(0, newJobsLaunched);
@@ -366,20 +403,20 @@ namespace EPS.Concurrency.Tests.Unit
 		}
 
 		[Theory]
-		[InlineData(20, 5)]
-		[InlineData(1, 1)]
-		[InlineData(1, 2)]
-		[InlineData(4, 2)]
-		public void StartUpTo_CalledMultipleTimesToSimulateRaceConditions_DoesNotIncreaseConcurrentlyExecutingJobs(int fakeJobsToCreate, int maxConcurrent)
+		[InlineData(20, 5, 30)]
+		[InlineData(1, 1, 30)]
+		[InlineData(1, 2, 30)]
+		[InlineData(4, 2, 30)]
+		public void StartUpTo_CalledMultipleTimesToSimulateRaceConditions_DoesNotIncreaseConcurrentlyExecutingJobs(int fakeJobsToCreate, int startUpTo, int maxConcurrent)
 		{
 			var jobPauser = new ManualResetEventSlim(false);
-			var queue = NewQueueWithPausedJobs(fakeJobsToCreate, maxConcurrent, jobPauser);
+			var queue = NewQueueWithPausedJobs(fakeJobsToCreate, startUpTo, jobPauser, maxConcurrent);
 
 			int completedCount = 0;
 			var completed = new ManualResetEventSlim(false);
 			queue.WhenJobCompletes.SubscribeOn(Scheduler.Immediate).Subscribe(result => 
 				{
-					if (Interlocked.Increment(ref completedCount) == Math.Min(fakeJobsToCreate, maxConcurrent))
+					if (Interlocked.Increment(ref completedCount) == Math.Min(fakeJobsToCreate, startUpTo))
 						completed.Set();
 				});
 
@@ -394,10 +431,10 @@ namespace EPS.Concurrency.Tests.Unit
 			//call StartUpTo successively to try to simulate a race conditions...
 			for (int i = 0; i < 20; i++)
 			{
-				newJobsLaunched += queue.StartUpTo(maxConcurrent);
+				newJobsLaunched += queue.StartUpTo(startUpTo);
 			}
 
-			int shouldHaveCreated = Math.Min(Math.Max(fakeJobsToCreate - maxConcurrent, 0), maxConcurrent);
+			int shouldHaveCreated = Math.Min(Math.Max(fakeJobsToCreate - startUpTo, 0), startUpTo);
 			Assert.Equal(shouldHaveCreated, newJobsLaunched);
 
 			queue.CancelOutstandingJobs();
@@ -405,11 +442,11 @@ namespace EPS.Concurrency.Tests.Unit
 		}
 
 
-		private List<JobResult<TJobInput, TJobOutput>> GetJobCancellations(int fakeJobsToCreate, int maxConcurrent, ManualResetEventSlim jobWaitPrimitive)
+		private List<JobResult<TJobInput, TJobOutput>> GetJobCancellations(int fakeJobsToCreate, int startUpTo, ManualResetEventSlim jobWaitPrimitive, int maxConcurrent)
 		{
 			ManualResetEventSlim allCancellationsReceived = new ManualResetEventSlim(false);
 
-			var queue = NewQueueWithPausedJobs(fakeJobsToCreate, maxConcurrent, jobWaitPrimitive);
+			var queue = NewQueueWithPausedJobs(fakeJobsToCreate, startUpTo, jobWaitPrimitive, maxConcurrent);
 			var queuedCount = queue.QueuedCount;
 			var results = new List<JobResult<TJobInput, TJobOutput>>();
 			queue.WhenJobCompletes.Subscribe(result =>
@@ -427,26 +464,26 @@ namespace EPS.Concurrency.Tests.Unit
 		}
 
 		[Theory]
-		[InlineData(20, 5)]
-		[InlineData(1, 1)]
-		[InlineData(1, 2)]
-		public void WhenJobCompletes_ReceivesErrorJobTypes_ForAllQueuedJobs(int fakeJobsToCreate, int maxConcurrent)
+		[InlineData(20, 5, 30)]
+		[InlineData(1, 1, 30)]
+		[InlineData(1, 2, 10)]
+		public void WhenJobCompletes_ReceivesErrorJobTypes_ForAllQueuedJobs(int fakeJobsToCreate, int startUpTo, int maxConcurrent)
 		{
 			ManualResetEventSlim jobLock = new ManualResetEventSlim(false);
-			var cancellations = GetJobCancellations(fakeJobsToCreate, maxConcurrent, jobLock);
+			var cancellations = GetJobCancellations(fakeJobsToCreate, startUpTo, jobLock, maxConcurrent);
 
 			Assert.True(cancellations.TrueForAll(r => r.Type == JobResultType.Error));
 			jobLock.Set();
 		}
 
 		[Theory]
-		[InlineData(20, 5)]
-		[InlineData(1, 1)]
-		[InlineData(1, 2)]
-		public void WhenJobCompletes_ResultExceptionIsOperationCanceledException_ForAllQueuedJobs(int fakeJobsToCreate, int maxConcurrent)
+		[InlineData(20, 5, 20)]
+		[InlineData(1, 1, 20)]
+		[InlineData(1, 2, 20)]
+		public void WhenJobCompletes_ResultExceptionIsOperationCanceledException_ForAllQueuedJobs(int fakeJobsToCreate, int startUpTo, int maxConcurrent)
 		{
 			ManualResetEventSlim jobLock = new ManualResetEventSlim(false);
-			var cancellations = GetJobCancellations(fakeJobsToCreate, maxConcurrent, jobLock);
+			var cancellations = GetJobCancellations(fakeJobsToCreate, startUpTo, jobLock, maxConcurrent);
 
 			Assert.True(cancellations.TrueForAll(r => r.Exception.GetType() == typeof(OperationCanceledException)));
 			jobLock.Set();
@@ -463,7 +500,8 @@ namespace EPS.Concurrency.Tests.Unit
 		{
 			private List<int> running = new List<int>();
 			private List<int> queued = new List<int>();
-
+			public TJobQueue Queue { get; set; }
+			
 			public List<int> Running { get { return running; } }
 			public List<int> Queued { get { return queued; } }
 		}
@@ -472,17 +510,17 @@ namespace EPS.Concurrency.Tests.Unit
 		{
 			var counts = new QueueCounts();
 			var jobPauser = new ManualResetEventSlim(false);
-			var queue = jobQueueFactory(Scheduler.Immediate);
+			counts.Queue = jobQueueFactory(Scheduler.Immediate);
 			Action startAndQueue = () =>
 			{
-				queue.StartNext();
-				counts.Running.Add(queue.RunningCount);
-				counts.Queued.Add(queue.QueuedCount);
+				counts.Queue.StartNext();
+				counts.Running.Add(counts.Queue.RunningCount);
+				counts.Queued.Add(counts.Queue.QueuedCount);
 			};
 
 			for (int i = 0; i < jobCount; ++i)
 			{
-				queue.Add(A.Dummy<TJobInput>(), input =>
+				counts.Queue.Add(A.Dummy<TJobInput>(), input =>
 				{
 					jobPauser.Wait();
 					return A.Dummy<TJobOutput>();
@@ -506,19 +544,26 @@ namespace EPS.Concurrency.Tests.Unit
 		[Theory]
 		[InlineData(20)]
 		[InlineData(40)]
-		public void StartNext_AddsToRunningCount(int jobCount)
+		[InlineData(60)]
+		public void StartNext_AddsToRunningCount_MaxingAtMaxConcurrent(int jobCount)
 		{
 			var counts = GetQueueCountsOverSequentialJobExecutions(jobCount, false);
-			Assert.True(Enumerable.Range(1, jobCount).SequenceEqual(counts.Running));
+			Assert.True(Enumerable.Range(1, jobCount)
+				.Select(i => Math.Min(i, counts.Queue.MaxConcurrent))
+				.SequenceEqual(counts.Running));
 		}
 
 		[Theory]
 		[InlineData(20)]
 		[InlineData(40)]
-		public void StartNext_DecreasesFromQueuedCount(int jobCount)
+		[InlineData(60)]
+		public void StartNext_DecreasesFromQueuedCount_UntilMaxConcurrentExceeded(int jobCount)
 		{
 			var counts = GetQueueCountsOverSequentialJobExecutions(jobCount, true);
-			Assert.True(Enumerable.Range(0, jobCount).Reverse().SequenceEqual(counts.Queued));
+			var expectedQueueCount = Enumerable.Range(0, jobCount).Reverse()
+				.Select(i => Math.Max(i, jobCount - counts.Queue.MaxConcurrent));
+
+			Assert.True(expectedQueueCount.SequenceEqual(counts.Queued));
 		}
 
 		[Fact]

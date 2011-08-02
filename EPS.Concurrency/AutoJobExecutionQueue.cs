@@ -10,26 +10,23 @@ namespace EPS.Concurrency
 	public class AutoJobExecutionQueue<TJobInput, TJobOutput> 
 		: ManualJobExecutionQueue<TJobInput, TJobOutput>
 	{		
-		private readonly int maxConcurrent;
+		private readonly int maxToAutoStart;
 
 		/// <summary>	Creates a new AutoJobExecutionQueue that will automatically always have. </summary>
 		/// <remarks>	7/15/2011. </remarks>
-		/// <exception cref="ArgumentOutOfRangeException">	Thrown when one or more arguments are outside the required range. </exception>
+		/// <exception cref="ArgumentOutOfRangeException">	Thrown when the number of concurrent jobs allowed is less than one or greater than the maximum allowed. </exception>
 		/// <param name="maxConcurrent">	The maximum concurrent number of jobs to allow to execute. </param>
 		public AutoJobExecutionQueue(int maxConcurrent)
-			: this(LocalScheduler.Default, maxConcurrent)
+			: base(maxConcurrent)
 		{
-			if (maxConcurrent < 1)
-			{
-				throw new ArgumentOutOfRangeException("maxConcurrent");
-			}
+			this.maxToAutoStart = maxConcurrent;
 		}
 
-		internal AutoJobExecutionQueue(IScheduler scheduler, int maxConcurrent)
-			: base(scheduler)
-		{
-			//we'll allow maxConcurrent of 0 for the sake of internal tests
-			this.maxConcurrent = maxConcurrent;
+		//this allow maxToAutoStart of 0 with a maxConcurrent of a higher value for the sake of internal tests
+		internal AutoJobExecutionQueue(IScheduler scheduler, int maxConcurrent, int maxToAutoStart)
+			: base(scheduler, maxConcurrent)
+		{ 
+			this.maxToAutoStart = maxToAutoStart;
 		}
 
 		/// <summary>	Adds a job matching a given input / output typing and an input value, and will auto-start the job, running only up to the maxConcurrent number of jobs specified. </summary>
@@ -43,7 +40,7 @@ namespace EPS.Concurrency
 			if (null == asyncStart) { throw new ArgumentNullException("asyncStart"); }
 
 			var whenCompletes = base.Add(input, asyncStart);
-			StartUpTo(maxConcurrent);
+			StartUpTo(maxToAutoStart);
 			return whenCompletes;
 		}
 
@@ -51,9 +48,9 @@ namespace EPS.Concurrency
 		{
 			base.OnJobCompleted(job, jobResult, error);
 			if (error != null)
-				LocalScheduler.Default.Schedule(() => StartUpTo(maxConcurrent));
+				LocalScheduler.Default.Schedule(() => StartUpTo(maxToAutoStart));
 			else
-				StartUpTo(maxConcurrent);
+				StartUpTo(maxToAutoStart);
 		}
 	}
 }

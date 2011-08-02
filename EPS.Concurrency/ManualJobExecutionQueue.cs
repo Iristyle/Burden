@@ -34,6 +34,10 @@ namespace EPS.Concurrency
 		private readonly IScheduler scheduler;
 		private ConcurrentQueue<Job> queue = new ConcurrentQueue<Job>();
 		private int runningCount;
+		private static int maxAllowedConcurrentJobs = 50;
+
+		private static int defaultConcurrent = 20;
+		protected int maxConcurrent;
 
 		private Subject<JobResult<TJobInput, TJobOutput>> whenJobCompletes
 			= new Subject<JobResult<TJobInput, TJobOutput>>();
@@ -42,12 +46,25 @@ namespace EPS.Concurrency
 		/// <summary>	Default constructor, that uses the TaskPool scheduler in standard .NET or the ThreadPool scheduler in Silverlight. </summary>
 		/// <remarks>	7/15/2011. </remarks>
 		public ManualJobExecutionQueue()
-			: this(LocalScheduler.Default)
+			: this(defaultConcurrent)
 		{ }
 
-		internal ManualJobExecutionQueue(IScheduler scheduler)
+		/// <summary>	Default constructor, that uses the TaskPool scheduler in standard .NET or the ThreadPool scheduler in Silverlight. </summary>
+		/// <remarks>	7/15/2011. </remarks>
+		public ManualJobExecutionQueue(int maxConcurrent)
+			: this(LocalScheduler.Default, maxConcurrent)
+		{
+			if (maxConcurrent < 1 || maxConcurrent > maxAllowedConcurrentJobs)
+			{
+				throw new ArgumentOutOfRangeException("maxConcurrent", maxConcurrent, "must be at least 1 and less than or equal to MaxAllowedConcurrentJobs");
+			}
+		}
+
+		//allowing maxConcurrent here lets us use 0 in tests
+		internal ManualJobExecutionQueue(IScheduler scheduler, int maxConcurrent)
 		{
 			this.scheduler = scheduler;
+			this.maxConcurrent = maxConcurrent;
 
 			// whenQueueEmpty subscription
 			whenJobCompletes.Subscribe(n =>
@@ -63,6 +80,35 @@ namespace EPS.Concurrency
 				if (running == 0 && queueCount == 0)
 					whenQueueEmpty.OnNext(new Unit());
 			});
+		}
+		
+		/// <summary>	Gets the default number of concurrent jobs to run on this ManualJobExecutionQueue. </summary>
+		/// <value>	The default number of concurrent jobs. </value>
+		public static int DefaultConcurrent
+		{
+			get { return defaultConcurrent; }
+		}
+
+		/// <summary>	Gets the maximum allowed concurrent jobs for a ManualJobExecutionQueue. </summary>
+		/// <value>	The maximum allowed concurrent jobs. </value>
+		public static int MaxAllowedConcurrentJobs
+		{
+			get { return maxAllowedConcurrentJobs; }
+		}
+
+		/// <summary>
+		/// Gets or sets the maximum number of allowed concurrent jobs.  If a value is set above MaxAllowedConcurrentJobs, then
+		/// MaxAllowedConcurrentJobs is set as the value.  If set below 1, the value is set to 1.  Does not affect the status of currently
+		/// executing jobs.
+		/// </summary>
+		/// <value>	The maximum allowed concurrent jobs, which defaults to the maximum allowed 50. </value>
+		public int MaxConcurrent
+		{
+			get { return maxConcurrent; }
+			set 
+			{
+				maxConcurrent = Math.Max(1, Math.Min(value, MaxAllowedConcurrentJobs)); 
+			}
 		}
 
 		/// <summary>
@@ -156,10 +202,19 @@ namespace EPS.Concurrency
 			return cancelable;
 		}
 
-		/// <summary>	Starts the next job in the queue. </summary>
+		/// <summary>
+		/// Starts the next job in the queue, as long as the current number of running jobs does not exceed the maximum upper limit allowed by
+		/// the job queue, presently 50.
+		/// </summary>
+		/// <remarks>	7/30/2011. </remarks>
 		/// <returns>	true if it succeeds, false if it fails. </returns>
 		public bool StartNext()
 		{
+			if (runningCount >= maxConcurrent)
+			{
+				return false;
+			}
+
 			Job job;
 			if (TryDequeNextJob(out job))
 			{
@@ -172,10 +227,14 @@ namespace EPS.Concurrency
 		}
 
 		/// <summary>	Starts up to the given number of jobs in the queue concurrently. </summary>
-		/// <param name="maxConcurrentlyRunning">	The maximum concurrently running jobs to allow. </param>
+		/// <remarks>	7/30/2011. </remarks>
+		/// <param name="maxConcurrentlyRunning">	The maximum concurrently running jobs to allow, which will be set to an upper limit of
+		/// 										MaxAllowedConcurrentJobs (presently 50). </param>
 		/// <returns>	The number of jobs started. </returns>
 		public int StartUpTo(int maxConcurrentlyRunning)
 		{
+			maxConcurrentlyRunning = Math.Min(maxConcurrentlyRunning, maxConcurrent);
+
 			int started = 0;
 			while (true)
 			{
