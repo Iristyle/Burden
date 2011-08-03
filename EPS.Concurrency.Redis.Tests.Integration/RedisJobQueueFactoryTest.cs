@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using EPS.Concurrency.Tests.Unit;
 using EPS.Test.Redis;
 using ServiceStack.Redis;
@@ -7,13 +8,13 @@ using Xunit;
 namespace EPS.Concurrency.Redis.Tests.Integration
 {
 	public class RedisJobQueueFactoryTest
-		: IDurableJobQueueFactoryTest<RedisJobQueueFactory>
+		: DurableJobQueueFactoryTest<RedisJobQueueFactory>
 	{
 		private static RedisConnection connection = RedisHostManager.Current();
 
 		private static IRedisClientsManager GetClientManager()
 		{
-			return new BasicRedisClientManager(String.Format("{0}:{1}", connection.Host, connection.Port));
+			return new BasicRedisClientManager(String.Format(CultureInfo.InvariantCulture, "{0}:{1}", connection.Host, connection.Port));
 		}
 
 		public RedisJobQueueFactoryTest()

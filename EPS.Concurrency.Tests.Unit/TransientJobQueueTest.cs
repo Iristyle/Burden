@@ -21,9 +21,9 @@ namespace EPS.Concurrency.Tests.Unit
 	}
 
 	public abstract class TransientJobQueueTest<TQueue, TQueuePoison>
-		: IDurableJobQueueTest<TransientJobQueue<TQueue, TQueuePoison>, TQueue, TQueuePoison>
+		: DurableJobQueueTest<TransientJobQueue<TQueue, TQueuePoison>, TQueue, TQueuePoison>
 	{
-		public TransientJobQueueTest(Func<TQueue, TQueuePoison> poisonConverter)
+		protected TransientJobQueueTest(Func<TQueue, TQueuePoison> poisonConverter)
 			: base(() => new TransientJobQueue<TQueue, TQueuePoison>(GenericEqualityComparer<TQueue>.ByAllMembers(), GenericEqualityComparer<TQueuePoison>.ByAllMembers()), poisonConverter)
 		{ }
 

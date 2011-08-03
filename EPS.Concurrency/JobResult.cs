@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace EPS.Concurrency
 {
@@ -12,24 +13,25 @@ namespace EPS.Concurrency
 	/// <typeparam name="TJobOutput">	Type of the output. </typeparam>
 	public class JobResult<TJobInput, TJobOutput>
 	{
-		private readonly TJobInput input;
-		private readonly TJobOutput output;
-		private readonly JobResultType jobResultType;
-		private readonly Exception exception;
+		private readonly TJobInput _input;
+		private readonly TJobOutput _output;
+		private readonly JobResultType _jobResultType;
+		private readonly Exception _exception;
 
 		/// <summary>	Constructs a new JobResult given an input and output. </summary>
 		/// <remarks>	7/14/2011. </remarks>
 		/// <exception cref="ArgumentNullException">	Thrown when either input or output is null. </exception>
 		/// <param name="input"> 	The input result. </param>
 		/// <param name="output">	The output. </param>
+		[SuppressMessage("Gendarme.Rules.Performance", "AvoidUncalledPrivateCodeRule", Justification = "Used by static factory class")]
 		internal JobResult(TJobInput input, TJobOutput output)
 		{
 			if (null == input) { throw new ArgumentNullException("input"); }
 			if (null == output) { throw new ArgumentNullException("output"); }
 
-			this.jobResultType = JobResultType.Completed;
-			this.input = input;
-			this.output = output;
+			this._jobResultType = JobResultType.Completed;
+			this._input = input;
+			this._output = output;
 		}
 
 		/// <summary>	Constructs a new JobResult given an input and exception. </summary>
@@ -37,42 +39,43 @@ namespace EPS.Concurrency
 		/// <exception cref="ArgumentNullException">	Thrown when either input or exception is null. </exception>
 		/// <param name="input">		The input result. </param>
 		/// <param name="exception">	The exception. </param>
+		[SuppressMessage("Gendarme.Rules.Performance", "AvoidUncalledPrivateCodeRule", Justification = "Used by static factory class")]
 		internal JobResult(TJobInput input, Exception exception)
 		{
 			if (null == input) { throw new ArgumentNullException("input"); }
 			if (null == exception) { throw new ArgumentNullException("exception"); }
 
-			this.jobResultType = JobResultType.Error;
-			this.input = input;
-			this.exception = exception;
+			this._jobResultType = JobResultType.Error;
+			this._input = input;
+			this._exception = exception;
 		}
 
 		/// <summary>	Gets the type of the job result. </summary>
 		/// <value>	The type. </value>
-		public JobResultType Type
+		public JobResultType ResultType
 		{
-			get { return jobResultType; }
+			get { return _jobResultType; }
 		}
 
 		/// <summary>	Gets the job input. </summary>
 		/// <value>	The job input. </value>
 		public TJobInput Input
 		{
-			get { return input; }
+			get { return _input; }
 		}
 
 		/// <summary>	Gets the job output. </summary>
 		/// <value>	The job output. </value>
 		public TJobOutput Output
 		{
-			get { return output; }
+			get { return _output; }
 		}
 
 		/// <summary>	Gets the jobs exception if there was one. </summary>
 		/// <value>	The exception. </value>
 		public Exception Exception
 		{
-			get { return exception; }
+			get { return _exception; }
 		}
 
 		/// <summary>
@@ -80,14 +83,14 @@ namespace EPS.Concurrency
 		/// TJobOutput} implicitly.
 		/// </summary>
 		/// <remarks>	7/14/2011. </remarks>
-		/// <exception cref="ArgumentNullException">	Thrown when the given input is null. </exception>
 		/// <param name="input">	The input result. </param>
 		/// <returns>	The result of the operation. </returns>
+		[SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Supplying these static methods on a generic class makes them very difficult to use")]
 		public static implicit operator JobResult<TJobInput, TJobOutput>(JobResult<TJobInput, object> input)
 		{
-			if (null == input) { throw new ArgumentNullException("input");  }
+			if (null == input) return null;
 
-			return new JobResult<TJobInput, TJobOutput>(input.input, input.exception);
+			return new JobResult<TJobInput, TJobOutput>(input._input, input._exception);
 		}
 	}
 

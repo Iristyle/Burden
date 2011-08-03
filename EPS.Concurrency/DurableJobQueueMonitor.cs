@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
@@ -13,24 +14,24 @@ namespace EPS.Concurrency
 	public class DurableJobQueueMonitor<TQueue, TQueuePoison> 
 		: IObservable<TQueue>
 	{
-		private readonly IDurableJobQueue<TQueue, TQueuePoison> durableJobQueue;
-		private IObservable<TQueue> syncRequestPublisher;
+		private readonly IDurableJobQueue<TQueue, TQueuePoison> _durableJobQueue;
+		private IObservable<TQueue> _syncRequestPublisher;
 
-		private readonly int maxQueueItemsToPublishPerInterval;
-		private readonly TimeSpan pollingInterval;
+		private readonly int _maxQueueItemsToPublishPerInterval;
+		private readonly TimeSpan _pollingInterval;
 
 		/// <summary>	Gets the maximum queue items to publish per interval. </summary>
 		/// <value>	The maximum queue items to publish per interval. </value>
 		public int MaxQueueItemsToPublishPerInterval 
 		{
-			get { return maxQueueItemsToPublishPerInterval; }
+			get { return _maxQueueItemsToPublishPerInterval; }
 		}
 		
 		/// <summary>	Gets the polling interval. </summary>
 		/// <value>	The polling interval. </value>
 		public TimeSpan PollingInterval
 		{
-			get { return pollingInterval; }
+			get { return _pollingInterval; }
 		}
 
 		/// <summary>	Constructor for internal uses only -- specifically. </summary>
@@ -52,18 +53,18 @@ namespace EPS.Concurrency
 			}
 			if (pollingInterval > DurableJobQueueMonitor.MaximumAllowedPollingInterval)
 			{
-				throw new ArgumentOutOfRangeException(String.Format("must be less than {0:c}", DurableJobQueueMonitor.
-				MaximumAllowedPollingInterval.ToString(), "pollingInterval"));
+				throw new ArgumentOutOfRangeException("pollingInterval", String.Format(CultureInfo.CurrentCulture, "must be less than {0:c}", DurableJobQueueMonitor.
+				MaximumAllowedPollingInterval.ToString()));
 			}
 			if (pollingInterval < DurableJobQueueMonitor.MinimumAllowedPollingInterval)
 			{
-				throw new ArgumentOutOfRangeException(String.Format("must be at least {0:c}", DurableJobQueueMonitor.
-				MaximumAllowedPollingInterval), "pollingInterval");
+				throw new ArgumentOutOfRangeException("pollingInterval", String.Format(CultureInfo.CurrentCulture, "must be at least {0:c}", DurableJobQueueMonitor.
+				MaximumAllowedPollingInterval));
 			}
 
 			if (maxQueueItemsToPublishPerInterval > DurableJobQueueMonitor.MaxAllowedQueueItemsToPublishPerInterval)
 			{
-				throw new ArgumentOutOfRangeException("maxQueueItemsToPublishPerInterval", String.Format(
+				throw new ArgumentOutOfRangeException("maxQueueItemsToPublishPerInterval", String.Format(CultureInfo.CurrentCulture,
 				"limited to {0} items to publish per interval", DurableJobQueueMonitor.MaxAllowedQueueItemsToPublishPerInterval));
 			}
 			if (maxQueueItemsToPublishPerInterval < 1)
@@ -75,15 +76,15 @@ namespace EPS.Concurrency
 				throw new ArgumentNullException("scheduler");
 			}
 
-			this.durableJobQueue = durableJobQueue;
-			this.maxQueueItemsToPublishPerInterval = maxQueueItemsToPublishPerInterval;
-			this.pollingInterval = pollingInterval;
+			this._durableJobQueue = durableJobQueue;
+			this._maxQueueItemsToPublishPerInterval = maxQueueItemsToPublishPerInterval;
+			this._pollingInterval = pollingInterval;
 
 			//on first construction, we must move any items out of 'pending' and back into 'queued', in the event of a crash recovery, etc
 			durableJobQueue.ResetAllPendingToQueued();
 
 			//fire up our polling on an interval, slurping up all non-nulls from 'queued', to a max of X items, but don't start until connect is called
-			syncRequestPublisher = Observable.Interval(pollingInterval, scheduler)
+			_syncRequestPublisher = Observable.Interval(pollingInterval, scheduler)
 			.SelectMany(interval =>
 			ReadQueuedItems()
 			.TakeWhile(request => request.Success)
@@ -97,7 +98,7 @@ namespace EPS.Concurrency
 		{
 			while (true)
 			{
-				yield return durableJobQueue.NextQueuedItem();
+				yield return _durableJobQueue.NextQueuedItem();
 			}
 		}
 
@@ -113,7 +114,7 @@ namespace EPS.Concurrency
 				throw new ArgumentNullException("observer");
 			}
 
-			return syncRequestPublisher.Subscribe(observer);
+			return _syncRequestPublisher.Subscribe(observer);
 		}
 	}
 

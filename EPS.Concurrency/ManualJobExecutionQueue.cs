@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
@@ -10,7 +11,7 @@ using System.Threading;
 namespace EPS.Concurrency
 {
 	/// <summary>
-	/// A job queue of a given input and output type, where the jobs are executed by manually calling StartNext, or StartUpTo.
+	/// A job queue of a given input and output type, where the jobs are executed by manually calling StartNext, or StartAsManyAs.
 	/// </summary>
 	/// <remarks>	7/15/2011. </remarks>
 	/// <typeparam name="TJobInput"> 	Type of the job input. </typeparam>
@@ -19,34 +20,55 @@ namespace EPS.Concurrency
 		: IJobExecutionQueue<TJobInput, TJobOutput>
 	{
 		//this class uniquely identifies an internal cancellation so we can properly modify the running job count
-		private class JobQueueCancellationException : OperationCanceledException
+		[SuppressMessage("Microsoft.Design", "CA1032:ImplementStandardExceptionConstructors", Justification = "This is only used within this class, and doesn't need a complete implementation")]
+		[SuppressMessage("Microsoft.Usage", "CA2237:MarkISerializableTypesWithSerializable", Justification = "This is only used within this class, and doesn't need a complete implementation")]
+		private sealed class JobQueueCancellationException : OperationCanceledException
 		{ }
 
+		/// <summary>	Defines the members necessary to encapsulate a job.  </summary>
+		/// <remarks>	8/3/2011. </remarks>
 		protected struct Job
 		{
-			public TJobInput Input;
-			public Func<TJobInput, IObservable<TJobOutput>> AsyncStart;
-			public AsyncSubject<JobResult<TJobInput, TJobOutput>> CompletionHandler;
-			public BooleanDisposable Cancel;
-			public MultipleAssignmentDisposable JobSubscription;
+			/// <summary>	Gets or sets the jobs input. </summary>
+			/// <value>	The input. </value>
+			public TJobInput Input { get; set; }
+			
+			/// <summary>	Gets or sets the asynchronous Func used to start the job. </summary>
+			/// <value>	The asynchronous start. </value>
+			[SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures", Justification = "Nested generics, while advanced, are perfectly acceptable within Funcs and IObservables, especially given this use case")]
+			public Func<TJobInput, IObservable<TJobOutput>> AsyncStart { get; set; }
+			
+			/// <summary>	Gets or sets the completion handler. </summary>
+			/// <value>	The completion handler. </value>
+			[SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures", Justification = "Nested generics, while advanced, are perfectly acceptable within Funcs and IObservables, especially given this use case")]
+			public AsyncSubject<JobResult<TJobInput, TJobOutput>> CompletionHandler { get; set; }
+			
+			/// <summary>	Keeps track of the job cancellation. </summary>
+			/// <value>	The cancel. </value>
+			public BooleanDisposable Cancel { get; set; }
+			
+			/// <summary>	Gets or sets the job subscription. </summary>
+			/// <value>	The job subscription. </value>
+			public MultipleAssignmentDisposable JobSubscription { get; set; }
 		}
 
-		private readonly IScheduler scheduler;
-		private ConcurrentQueue<Job> queue = new ConcurrentQueue<Job>();
-		private int runningCount;
-		private static int maxAllowedConcurrentJobs = 50;
+		private bool _disposed, _completionDisposed;
+		private readonly IScheduler _scheduler;
+		private ConcurrentQueue<Job> _queue = new ConcurrentQueue<Job>();
+		private int _runningCount;
+		private static int _maxAllowedConcurrentJobs = 50;
 
-		private static int defaultConcurrent = 20;
-		protected int maxConcurrent;
+		private static int _defaultConcurrent = 20;
+		private int _maxConcurrent;
 
-		private Subject<JobResult<TJobInput, TJobOutput>> whenJobCompletes
+		private Subject<JobResult<TJobInput, TJobOutput>> _whenJobCompletes
 			= new Subject<JobResult<TJobInput, TJobOutput>>();
-		private Subject<Unit> whenQueueEmpty = new Subject<Unit>();
+		private Subject<Unit> _whenQueueEmpty = new Subject<Unit>();
 
 		/// <summary>	Default constructor, that uses the TaskPool scheduler in standard .NET or the ThreadPool scheduler in Silverlight. </summary>
 		/// <remarks>	7/15/2011. </remarks>
 		public ManualJobExecutionQueue()
-			: this(defaultConcurrent)
+			: this(DefaultConcurrent)
 		{ }
 
 		/// <summary>	Default constructor, that uses the TaskPool scheduler in standard .NET or the ThreadPool scheduler in Silverlight. </summary>
@@ -54,46 +76,104 @@ namespace EPS.Concurrency
 		public ManualJobExecutionQueue(int maxConcurrent)
 			: this(LocalScheduler.Default, maxConcurrent)
 		{
-			if (maxConcurrent < 1 || maxConcurrent > maxAllowedConcurrentJobs)
+			if (maxConcurrent < 1 || maxConcurrent > _maxAllowedConcurrentJobs)
 			{
 				throw new ArgumentOutOfRangeException("maxConcurrent", maxConcurrent, "must be at least 1 and less than or equal to MaxAllowedConcurrentJobs");
 			}
 		}
 
 		//allowing maxConcurrent here lets us use 0 in tests
+		[SuppressMessage("Gendarme.Rules.Performance", "AvoidUncalledPrivateCodeRule", Justification = "Used by test classes to change scheduler")]
 		internal ManualJobExecutionQueue(IScheduler scheduler, int maxConcurrent)
 		{
-			this.scheduler = scheduler;
-			this.maxConcurrent = maxConcurrent;
+			this._scheduler = scheduler;
+			this._maxConcurrent = maxConcurrent;
 
 			// whenQueueEmpty subscription
-			whenJobCompletes.Subscribe(n =>
+			_whenJobCompletes.Subscribe(n =>
 			{
-				int queueCount = queue.Count;
-				int running = runningCount;
+				int queueCount = _queue.Count;
+				int running = _runningCount;
 				//only decrement the running count if we're not dealing with a cancellation 
 				if (null == n.Exception as JobQueueCancellationException)
 				{
-					running = Interlocked.Decrement(ref runningCount);
+					running = Interlocked.Decrement(ref _runningCount);
 				}
 
 				if (running == 0 && queueCount == 0)
-					whenQueueEmpty.OnNext(new Unit());
+					_whenQueueEmpty.OnNext(new Unit());
 			});
 		}
-		
+
+		/// <summary>	Throws an ObjectDisposedException if this object has been disposed of. </summary>
+		/// <remarks>	8/3/2011. </remarks>
+		/// <exception cref="ObjectDisposedException">	Thrown when a supplied object has been disposed. </exception>
+		protected void ThrowIfDisposed()
+		{
+			if (_disposed)
+			{
+				throw new ObjectDisposedException("this");
+			}
+		}
+
+		/// <summary>	Gets a value indicating whether the instance has been disposed. </summary>
+		/// <value>	true if disposed, false if not. </value>
+		protected bool Disposed
+		{
+			get { return _disposed; }
+		}
+
+		/// <summary>	Dispose of this object, cleaning up any resources it uses. </summary>
+		/// <remarks>	7/24/2011. </remarks>
+		public void Dispose()
+		{
+			if (!this._disposed)
+			{
+				Dispose(true);
+				GC.SuppressFinalize(this);
+			}
+		}
+
+		/// <summary>
+		/// Dispose of this object, cleaning up any resources it uses.  Will cancel any outstanding un-executed jobs, and will wait on jobs
+		/// currently executing to complete.
+		/// </summary>
+		/// <remarks>	7/24/2011. </remarks>
+		/// <param name="disposing">	true if resources should be disposed, false if not. </param>
+		protected virtual void Dispose(bool disposing)
+		{
+			if (disposing)
+			{
+				this._disposed = true;
+				
+				//attempt to wait for jobs currently executing to complete before disposing
+				CancelOutstandingJobs();
+				using (var wait = new ManualResetEventSlim(false))
+				using (var subscription = _whenQueueEmpty.Subscribe(n => wait.Set()))
+				{
+					if (RunningCount != 0)
+					{
+						wait.Wait(TimeSpan.FromSeconds(20));
+					}
+				}
+				_whenJobCompletes.Dispose();
+				this._completionDisposed = true;
+				_whenQueueEmpty.Dispose();
+			}
+		}
+
 		/// <summary>	Gets the default number of concurrent jobs to run on this ManualJobExecutionQueue. </summary>
 		/// <value>	The default number of concurrent jobs. </value>
 		public static int DefaultConcurrent
 		{
-			get { return defaultConcurrent; }
+			get { return _defaultConcurrent; }
 		}
 
 		/// <summary>	Gets the maximum allowed concurrent jobs for a ManualJobExecutionQueue. </summary>
 		/// <value>	The maximum allowed concurrent jobs. </value>
 		public static int MaxAllowedConcurrentJobs
 		{
-			get { return maxAllowedConcurrentJobs; }
+			get { return _maxAllowedConcurrentJobs; }
 		}
 
 		/// <summary>
@@ -104,10 +184,10 @@ namespace EPS.Concurrency
 		/// <value>	The maximum allowed concurrent jobs, which defaults to the maximum allowed 50. </value>
 		public int MaxConcurrent
 		{
-			get { return maxConcurrent; }
+			get { return _maxConcurrent; }
 			set 
 			{
-				maxConcurrent = Math.Max(1, Math.Min(value, MaxAllowedConcurrentJobs)); 
+				_maxConcurrent = Math.Max(1, Math.Min(value, MaxAllowedConcurrentJobs)); 
 			}
 		}
 
@@ -115,11 +195,14 @@ namespace EPS.Concurrency
 		/// The Observable that monitors job completion, where completion can be either run to completion, exception or cancellation.
 		/// </summary>
 		/// <value>	A sequence of observable job completion notifications. </value>
+		/// <exception cref="ObjectDisposedException">	Thrown when the object has been disposed of, and is therefore no longer accepting new
+		/// 												jobs or publishing notifications. </exception>
 		public IObservable<JobResult<TJobInput, TJobOutput>> WhenJobCompletes
 		{
 			get 
 			{ 
-				return whenJobCompletes
+				ThrowIfDisposed();
+				return _whenJobCompletes
 				.Select(result => 
 				{ 
 					//have to convert our custom exception back to something standard
@@ -135,31 +218,42 @@ namespace EPS.Concurrency
 
 		/// <summary>	The observable that monitors job queue empty status. </summary>
 		/// <value>	A simple notification indicating the queue has reached empty status. </value>
+		/// <exception cref="ObjectDisposedException">	Thrown when the object has been disposed of, and is therefore no longer accepting new
+		/// 												jobs or publishing notifications. </exception>
 		public IObservable<Unit> WhenQueueEmpty
 		{
-			get { return whenQueueEmpty.AsObservable(); }
+			get 
+			{ 
+				ThrowIfDisposed();
+				return _whenQueueEmpty.AsObservable(); 
+			}
 		}
 
 		/// <summary>	Gets the number of running jobs. </summary>
 		/// <value>	The number of running jobs. </value>
 		public int RunningCount
 		{
-			get { return runningCount; }
+			get { return _runningCount; }
 		}
 
 		/// <summary>	Gets the number of queued jobs. </summary>
 		/// <value>	The number of queued jobs. </value>
 		public int QueuedCount
 		{
-			get { return queue.Count; }
+			get { return _queue.Count; }
 		}
 
 		/// <summary>	Adds a job matching a given input / output typing and an input value. </summary>
+		/// <remarks>	8/3/2011. </remarks>
+		/// <exception cref="ArgumentNullException">	Thrown when one the input or action are null. </exception>
+		/// <exception cref="ObjectDisposedException">	Thrown when the object has been disposed of, and is therefore no longer accepting new
+		/// 												jobs or publishing notifications. </exception>
 		/// <param name="input"> 	The input. </param>
 		/// <param name="action">	The action to perform. </param>
 		/// <returns>	A sequence of Observable JobResult instances. </returns>
 		public IObservable<JobResult<TJobInput, TJobOutput>> Add(TJobInput input, Func<TJobInput, TJobOutput> action)
 		{
+			ThrowIfDisposed();
 			if (null == input) { throw new ArgumentNullException("input"); }
 			if (null == action) { throw new ArgumentNullException("action"); }
 
@@ -167,11 +261,17 @@ namespace EPS.Concurrency
 		}
 
 		/// <summary>	Adds a job matching a given input / output typing and an input value. </summary>
+		/// <remarks>	8/3/2011. </remarks>
+		/// <exception cref="ArgumentNullException">	Thrown when the input or asyncStart are null. </exception>
+		/// <exception cref="ObjectDisposedException">	Thrown when the object has been disposed of, and is therefore no longer accepting new
+		/// 												jobs or publishing notifications. </exception>
 		/// <param name="input">	 	The input. </param>
 		/// <param name="asyncStart">	The asynchronous observable action to perform. </param>
 		/// <returns>	A sequence of Observable JobResult instances. </returns>
+		[SuppressMessage("Microsoft.Reliability", "CA2000:DisposeObjectsBeforeLosingScope", Justification = "Job disposables are tracked and later disposed as necessary")]		
 		public virtual IObservable<JobResult<TJobInput, TJobOutput>> Add(TJobInput input, Func<TJobInput, IObservable<TJobOutput>> asyncStart)
 		{
+			ThrowIfDisposed();
 			if (null == input) { throw new ArgumentNullException("input"); }
 			if (null == asyncStart) { throw new ArgumentNullException("asyncStart"); }
 
@@ -188,17 +288,17 @@ namespace EPS.Concurrency
 				job.CompletionHandler.Subscribe(o),
 				job.JobSubscription,
 				job.Cancel))
-			.ObserveOn(scheduler);
+			.ObserveOn(_scheduler);
 
 			job.CompletionHandler
-				.ObserveOn(scheduler)
+				.ObserveOn(_scheduler)
 				.Materialize()
 				.Where(n => n.Kind == NotificationKind.OnNext)
 				.Select(n => n.Value)
-				.Subscribe(whenJobCompletes.OnNext);
+				.Subscribe(_whenJobCompletes.OnNext);
 			// pass on errors and completions
 
-			queue.Enqueue(job);
+			_queue.Enqueue(job);
 			return cancelable;
 		}
 
@@ -206,11 +306,15 @@ namespace EPS.Concurrency
 		/// Starts the next job in the queue, as long as the current number of running jobs does not exceed the maximum upper limit allowed by
 		/// the job queue, presently 50.
 		/// </summary>
+		/// <exception cref="ObjectDisposedException">	Thrown when the object has been disposed of, and is therefore no longer accepting new
+		/// 												jobs or publishing notifications. </exception>
 		/// <remarks>	7/30/2011. </remarks>
 		/// <returns>	true if it succeeds, false if it fails. </returns>
 		public bool StartNext()
 		{
-			if (runningCount >= maxConcurrent)
+			ThrowIfDisposed();
+
+			if (_runningCount >= _maxConcurrent)
 			{
 				return false;
 			}
@@ -218,7 +322,7 @@ namespace EPS.Concurrency
 			Job job;
 			if (TryDequeNextJob(out job))
 			{
-				Interlocked.Increment(ref runningCount);
+				Interlocked.Increment(ref _runningCount);
 				StartJob(job);
 				return true;
 			}
@@ -228,12 +332,16 @@ namespace EPS.Concurrency
 
 		/// <summary>	Starts up to the given number of jobs in the queue concurrently. </summary>
 		/// <remarks>	7/30/2011. </remarks>
+		/// <exception cref="ObjectDisposedException">	Thrown when the object has been disposed of, and is therefore no longer accepting new
+		/// 												jobs or publishing notifications. </exception>
 		/// <param name="maxConcurrentlyRunning">	The maximum concurrently running jobs to allow, which will be set to an upper limit of
 		/// 										MaxAllowedConcurrentJobs (presently 50). </param>
 		/// <returns>	The number of jobs started. </returns>
-		public int StartUpTo(int maxConcurrentlyRunning)
+		public int StartAsManyAs(int maxConcurrentlyRunning)
 		{
-			maxConcurrentlyRunning = Math.Min(maxConcurrentlyRunning, maxConcurrent);
+			ThrowIfDisposed();
+
+			maxConcurrentlyRunning = Math.Min(maxConcurrentlyRunning, _maxConcurrent);
 
 			int started = 0;
 			while (true)
@@ -242,11 +350,11 @@ namespace EPS.Concurrency
 
 				do // test and increment with compare and swap
 				{
-					running = runningCount;
+					running = _runningCount;
 					if (running >= maxConcurrentlyRunning)
 						return started;
 				}
-				while (Interlocked.CompareExchange(ref runningCount, running + 1, running) != running);
+				while (Interlocked.CompareExchange(ref _runningCount, running + 1, running) != running);
 
 				Job job;
 				if (TryDequeNextJob(out job))
@@ -257,11 +365,11 @@ namespace EPS.Concurrency
 				else
 				{
 					// dequeing job failed but we already incremented running count
-					Interlocked.Decrement(ref runningCount);
+					Interlocked.Decrement(ref _runningCount);
 
 					// ensure that no other thread queued an item and did not start it
 					// because the running count was too high
-					if (queue.Count == 0)
+					if (_queue.Count == 0)
 					{
 						// if there is nothing in the queue after the decrement 
 						// we can safely return
@@ -287,22 +395,21 @@ namespace EPS.Concurrency
 		{
 			do
 			{
-				if (!queue.TryDequeue(out job))
+				if (!_queue.TryDequeue(out job))
 					return false;
 			}
 			while (job.Cancel.IsDisposed);
 			return true;
 		}
 
+		[SuppressMessage("Gendarme.Rules.Correctness", "EnsureLocalDisposalRule", Justification = "Proper job disposal is spread out amongst several methods")]
 		private void StartJob(Job job)
 		{
 			try
 			{
-				IDisposable jobSubscription = job.AsyncStart(job.Input).ObserveOn(scheduler).Subscribe(
+				job.JobSubscription.Disposable = job.AsyncStart(job.Input).ObserveOn(_scheduler).Subscribe(
 					result => OnJobCompleted(job, result, null),
 					e => OnJobCompleted(job, default(TJobOutput), e));
-
-				job.JobSubscription.Disposable = jobSubscription;
 
 				if (job.Cancel.IsDisposed)
 					job.JobSubscription.Dispose();
@@ -314,10 +421,20 @@ namespace EPS.Concurrency
 			}
 		}
 
-		protected virtual void OnJobCompleted(Job job, TJobOutput jobResult, Exception error)
+		/// <summary>	Fires OnNext for our CompletionHandler, passing along the appropriate JobResult based on whether or not there was an error. </summary>
+		/// <remarks>	8/3/2011. </remarks>
+		/// <param name="job">			The job. </param>
+		/// <param name="jobResult">	The job result. </param>
+		/// <param name="exception">		The error, if one exists. </param>
+		protected virtual void OnJobCompleted(Job job, TJobOutput jobResult, Exception exception)
 		{
-			job.CompletionHandler.OnNext(error == null ? JobResult.CreateOnCompletion(job.Input, jobResult)
-				: JobResult.CreateOnError(job.Input, error));
+			if (_completionDisposed)
+			{
+				return;
+			}
+
+			job.CompletionHandler.OnNext(exception == null ? JobResult.CreateOnCompletion(job.Input, jobResult)
+				: JobResult.CreateOnError(job.Input, exception));
 			job.CompletionHandler.OnCompleted();
 		}
 	}

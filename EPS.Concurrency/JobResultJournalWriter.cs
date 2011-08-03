@@ -1,4 +1,6 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using Common.Logging;
@@ -14,9 +16,12 @@ namespace EPS.Concurrency
 	/// <typeparam name="TJobInput">   	The type of the input to the job. </typeparam>
 	/// <typeparam name="TJobOutput">  	The type of the output from the job. </typeparam>
 	/// <typeparam name="TQueuePoison">	Type to be stored if a job failed and should be poisoned. </typeparam>
-	public class JobResultJournaler<TJobInput, TJobOutput, TQueuePoison>
+	[SuppressMessage("Microsoft.Design", "CA1005:AvoidExcessiveParametersOnGenericTypes", Justification = "The heavy use of generics is mitigated by numerous static helpers that use compiler inference")]
+	public class JobResultJournalWriter<TJobInput, TJobOutput, TQueuePoison>
+		: IDisposable
 	{
-		private IDisposable jobCompleted;
+		private bool _disposed;
+		private readonly IDisposable _jobCompleted;
 
 		/// <summary>
 		/// Constructs a new instance that listens to completion notifications on Scheduler.TaskPool or Scheduler.ThreadPool when on Silverlight .
@@ -25,13 +30,15 @@ namespace EPS.Concurrency
 		/// <param name="jobCompletionNotifications">	The job completion notification stream. </param>
 		/// <param name="jobResultInspector">		 	The job result inspector. </param>
 		/// <param name="durableJobQueue">		 	The durable job queue. </param>
-		public JobResultJournaler(IObservable<JobResult<TJobInput, TJobOutput>> jobCompletionNotifications, 
+		[SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures", Justification = "Nested generics, while advanced, are perfectly acceptable within Funcs and IObservables")]
+		public JobResultJournalWriter(IObservable<JobResult<TJobInput, TJobOutput>> jobCompletionNotifications, 
 			IJobResultInspector<TJobInput, TJobOutput, TQueuePoison> jobResultInspector,
 			IDurableJobQueue<TJobInput, TQueuePoison> durableJobQueue)
 			: this(jobCompletionNotifications, jobResultInspector, durableJobQueue, LogManager.GetCurrentClassLogger(), LocalScheduler.Default)
 		{ }
 
-		internal JobResultJournaler(IObservable<JobResult<TJobInput, TJobOutput>> jobCompletionNotifications, 
+		[SuppressMessage("Gendarme.Rules.Performance", "AvoidUncalledPrivateCodeRule", Justification = "Used by test classes to change scheduler")]
+		internal JobResultJournalWriter(IObservable<JobResult<TJobInput, TJobOutput>> jobCompletionNotifications, 
 			IJobResultInspector<TJobInput, TJobOutput, TQueuePoison> jobResultInspector,
 			IDurableJobQueue<TJobInput, TQueuePoison> durableJobQueue,
 			ILog log,
@@ -41,13 +48,13 @@ namespace EPS.Concurrency
 			if (null == jobResultInspector) { throw new ArgumentNullException("jobResultInspector"); }
 			if (null == jobCompletionNotifications) { throw new ArgumentNullException("jobCompletionNotifications"); }
 
-			this.jobCompleted = jobCompletionNotifications
+			this._jobCompleted = jobCompletionNotifications
 			.SubscribeOn(scheduler)
 			.Subscribe(notification =>	
 			{
 				if (null == notification)
 				{
-					log.Error(m => m("Received invalid NULL Notification<JobResult<{0},{1}>>", typeof(TJobInput).Name, typeof(TJobOutput).Name));
+					log.Error(CultureInfo.CurrentCulture, m => m("Received invalid NULL Notification<JobResult<{0},{1}>>", typeof(TJobInput).Name, typeof(TJobOutput).Name));
 					return;
 				}
 
@@ -55,7 +62,7 @@ namespace EPS.Concurrency
 
 				if (null == queueAction)
 				{
-					log.Error(m => m("Received invalid NULL JobQueueAction<{0}> from Inspect call", typeof(TQueuePoison).Name));
+					log.Error(CultureInfo.CurrentCulture, m => m("Received invalid NULL JobQueueAction<{0}> from Inspect call", typeof(TQueuePoison).Name));
 				}
 				//no need to check 
 				else if (queueAction.ActionType == JobQueueActionType.Poison)
@@ -68,9 +75,36 @@ namespace EPS.Concurrency
 				}
 				else
 				{
-					log.Error(m => m("Received invalid JobQueueAction<{0}> with JobQueueActionType of Unknown", typeof(TQueuePoison).Name));
+					log.Error(CultureInfo.CurrentCulture, m => m("Received invalid JobQueueAction<{0}> with JobQueueActionType of Unknown", typeof(TQueuePoison).Name));
 				}
 			});
 		}
+
+		/// <summary>	Dispose of this object, cleaning up any resources it uses. </summary>
+		/// <remarks>	7/24/2011. </remarks>
+		public void Dispose()
+		{
+			if (!this._disposed)
+			{
+				Dispose(true);
+				GC.SuppressFinalize(this);
+			}
+		}
+
+		/// <summary>
+		/// Dispose of this object, cleaning up any resources it uses.  Will cancel any outstanding un-executed jobs, and will wait on jobs
+		/// currently executing to complete.
+		/// </summary>
+		/// <remarks>	7/24/2011. </remarks>
+		/// <param name="disposing">	true if resources should be disposed, false if not. </param>
+		protected virtual void Dispose(bool disposing)
+		{
+			if (disposing)
+			{
+				this._disposed = true;
+				_jobCompleted.Dispose();
+			}
+		}
+
 	}
 }

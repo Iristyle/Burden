@@ -1,10 +1,14 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace EPS.Concurrency
 {
 	/// <summary>	A very simple interface for adding items to a monitored job queue.  </summary>
 	/// <remarks>	7/24/2011. </remarks>
-	/// <typeparam name="T">	Generic type parameter. </typeparam>
+	/// <typeparam name="TJobInput">	The type of job input. </typeparam>
+	/// <typeparam name="TJobOutput">	The type of job output. </typeparam>
+	/// <typeparam name="TPoison">	The type of a poisoned job input. </typeparam>
+	[SuppressMessage("Microsoft.Design", "CA1005:AvoidExcessiveParametersOnGenericTypes", Justification = "The heavy use of generics is mitigated by numerous static helpers that use compiler inference")]
 	public interface IMonitoredJobQueue<TJobInput, TJobOutput, TPoison>
 		: IDisposable
 	{
@@ -17,10 +21,12 @@ namespace EPS.Concurrency
 		/// execution queue.
 		/// </summary>
 		/// <value>	A sequence of observable job completion notifications from the job execution queue. </value>
+		[SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures", Justification = "Nested generics, while advanced, are perfectly acceptable within Funcs and IObservables")]
 		IObservable<JobResult<TJobInput, TJobOutput>> OnJobCompletion { get; }
 
 		/// <summary>	Gets notifications as items are moved around the durable queue. </summary>
 		/// <value>	A sequence of observable durable queue notifications. </value>
+		[SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures", Justification = "Nested generics, while advanced, are perfectly acceptable within Funcs and IObservables")]
 		IObservable<DurableJobQueueAction<TJobInput, TPoison>> OnQueueAction { get; }
 
 		/// <summary>	Cancel queued jobs and wait for executing jobs to complete. </summary>

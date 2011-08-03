@@ -11,11 +11,11 @@ namespace EPS.Concurrency
 	public class TransientJobQueue<TQueue, TQueuePoison>
 	: IDurableJobQueue<TQueue, TQueuePoison>
 	{
-		private List<TQueue> queue = new List<TQueue>();
-		private List<TQueue> pending = new List<TQueue>();
-		private List<TQueuePoison> poisoned = new List<TQueuePoison>();
-		private IEqualityComparer<TQueue> itemComparer;
-		private IEqualityComparer<TQueuePoison> poisonComparer;
+		private List<TQueue> _queue = new List<TQueue>();
+		private List<TQueue> _pending = new List<TQueue>();
+		private List<TQueuePoison> _poisoned = new List<TQueuePoison>();
+		private IEqualityComparer<TQueue> _itemComparer;
+		private IEqualityComparer<TQueuePoison> _poisonComparer;
 
 		/// <summary>	Constructor. </summary>
 		/// <remarks>	7/27/2011. </remarks>
@@ -24,11 +24,17 @@ namespace EPS.Concurrency
 		/// <param name="poisonComparer">	The poison comparer. </param>
 		public TransientJobQueue(IEqualityComparer<TQueue> itemComparer, IEqualityComparer<TQueuePoison> poisonComparer)
 		{
-			if (null == itemComparer) { throw new ArgumentNullException("itemComparer"); }
-			if (null == poisonComparer) { throw new ArgumentNullException("poisonComparer"); }
+			if (null == itemComparer)
+			{
+				throw new ArgumentNullException("itemComparer");
+			}
+			if (null == poisonComparer)
+			{
+				throw new ArgumentNullException("poisonComparer");
+			}
 
-			this.itemComparer = itemComparer;
-			this.poisonComparer = poisonComparer;
+			this._itemComparer = itemComparer;
+			this._poisonComparer = poisonComparer;
 		}
 
 		/// <summary>	Adds a new item to the queue. </summary>
@@ -37,11 +43,14 @@ namespace EPS.Concurrency
 		/// <param name="item">	The item. </param>
 		public void Queue(TQueue item)
 		{
-			if (null == item) { throw new ArgumentNullException("item"); }
-
-			lock (queue)
+			if (null == item)
 			{
-				queue.Add(item);
+				throw new ArgumentNullException("item");
+			}
+
+			lock (_queue)
+			{
+				_queue.Add(item);
 			}
 		}
 
@@ -49,15 +58,15 @@ namespace EPS.Concurrency
 		/// <returns>	The item if an item was queued, otherwise null. </returns>
 		public IItem<TQueue> NextQueuedItem()
 		{
-			lock (queue)
+			lock (_queue)
 			{
-				if (queue.Count == 0)
+				if (_queue.Count == 0)
 					return Item.None<TQueue>();
 
-				var item = queue.ElementAt(0);
-				queue.RemoveAt(0);
+				var item = _queue[0];
+				_queue.RemoveAt(0);
 
-				pending.Add(item);
+				_pending.Add(item);
 				return Item.From(item);
 			}
 		}
@@ -65,13 +74,13 @@ namespace EPS.Concurrency
 		/// <summary>	Resets all pending items to the queued state. </summary>
 		public void ResetAllPendingToQueued()
 		{
-			lock (queue)
+			lock (_queue)
 			{
-				if (pending.Count == 0)
+				if (_pending.Count == 0)
 					return;
 
-				queue = pending.Concat(queue).ToList();
-				pending.Clear();
+				_queue = _pending.Concat(_queue).ToList();
+				_pending.Clear();
 			}
 		}
 
@@ -82,17 +91,14 @@ namespace EPS.Concurrency
 		/// <returns>	true if it succeeds, false if it fails. </returns>
 		public bool Complete(TQueue item)
 		{
-			if (null == item) { throw new ArgumentNullException("item"); }
-
-			lock (queue)
+			if (null == item)
 			{
-				int index = pending.FindIndex(p => itemComparer.Equals(p, item));
-				if (-1 == index)
-				{
-					return false;
-				}
-				pending.RemoveAt(index);
-				return true;
+				throw new ArgumentNullException("item");
+			}
+
+			lock (_queue)
+			{
+				return RemoveItemFromList(_pending, item, _itemComparer);
 			}
 		}
 
@@ -104,18 +110,23 @@ namespace EPS.Concurrency
 		/// <returns>	true if it succeeds, false if it fails. </returns>
 		public bool Poison(TQueue item, TQueuePoison poisonedItem)
 		{
-			if (null == item) { throw new ArgumentNullException("item"); }
-			if (null == poisonedItem) { throw new ArgumentNullException("poisonedItem"); }
-
-			lock (queue)
+			if (null == item)
 			{
-				int index = pending.FindIndex(p => itemComparer.Equals(p, item));
-				if (-1 == index)
+				throw new ArgumentNullException("item");
+			}
+			if (null == poisonedItem)
+			{
+				throw new ArgumentNullException("poisonedItem");
+			}
+
+			lock (_queue)
+			{
+				if (!RemoveItemFromList(_pending, item, _itemComparer))
 				{
 					return false;
 				}
-				pending.RemoveAt(index);
-				poisoned.Add(poisonedItem);
+
+				_poisoned.Add(poisonedItem);
 				return true;
 			}
 		}
@@ -127,18 +138,26 @@ namespace EPS.Concurrency
 		/// <returns>	true if it succeeds, false if it fails. </returns>
 		public bool Delete(TQueuePoison poisonedItem)
 		{
-			if (null == poisonedItem) { throw new ArgumentNullException("poisonedItem"); }
-
-			lock (queue)
+			if (null == poisonedItem)
 			{
-				int index = poisoned.FindIndex(poison => poisonComparer.Equals(poison, poisonedItem));
-				if (-1 == index)
-				{
-					return false;
-				}
-				poisoned.RemoveAt(index);
-				return true;
+				throw new ArgumentNullException("poisonedItem");
 			}
+
+			lock (_queue)
+			{
+				return RemoveItemFromList(_poisoned, poisonedItem, _poisonComparer);
+			}
+		}
+
+		private static bool RemoveItemFromList<T>(List<T> list, T item, IEqualityComparer<T> comparer)
+		{
+			int index = list.FindIndex(p => comparer.Equals(p, item));
+			if (-1 == index)
+			{
+				return false;
+			}
+			list.RemoveAt(index);
+			return true;
 		}
 
 		/// <summary>	Returns all poisoned items stored for this queue. </summary>
@@ -146,7 +165,7 @@ namespace EPS.Concurrency
 		/// <returns>	An enumerable collection of poisoned items (that may be empty). </returns>
 		public IEnumerable<TQueuePoison> GetPoisoned()
 		{
-			return poisoned.AsEnumerable();
+			return _poisoned.AsEnumerable();
 		}
 
 		/// <summary>	Returns all queue items stored for this queue. </summary>
@@ -154,7 +173,7 @@ namespace EPS.Concurrency
 		/// <returns>	An enumerable collection of queue items (that may be empty). </returns>
 		public IEnumerable<TQueue> GetQueued()
 		{
-			return queue.AsEnumerable();
+			return _queue.AsEnumerable();
 		}
 
 		/// <summary>	Returns all pending items stored for this queue. </summary>
@@ -162,7 +181,7 @@ namespace EPS.Concurrency
 		/// <returns>	An enumerable collection of pending items (that may be empty). </returns>
 		public IEnumerable<TQueue> GetPending()
 		{
-			return pending.AsEnumerable();
+			return _pending.AsEnumerable();
 		}
 	}
 }

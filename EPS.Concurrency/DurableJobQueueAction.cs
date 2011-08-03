@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace EPS.Concurrency
 {
@@ -21,8 +22,8 @@ namespace EPS.Concurrency
 		/// <value>	The poison. </value>
 		public TQueuePoison Poison { get; private set; }
 		
-		private readonly bool isInputValueType = typeof(TQueue).IsValueType;
-		private readonly bool isPoisonValueType = typeof(TQueuePoison).IsValueType;
+		private readonly bool _isInputValueType = typeof(TQueue).IsValueType;
+		private readonly bool _isPoisonValueType = typeof(TQueuePoison).IsValueType;
 
 		internal DurableJobQueueAction(DurableJobQueueActionType actionType, TQueue input, TQueuePoison poison)
 		{
@@ -36,33 +37,33 @@ namespace EPS.Concurrency
 				case DurableJobQueueActionType.Completed:
 				case DurableJobQueueActionType.Pending:
 				default:
-					if (!isInputValueType && null == input)
+					if (!_isInputValueType && null == input)
 					{
 						throw new ArgumentNullException("input");
 					}
-					if (!isPoisonValueType && null != poison)
+					if (!_isPoisonValueType && null != poison)
 					{
-						throw new ArgumentException("poison", "must be null");
+						throw new ArgumentException("must be null", "poison");
 					}
 					break;
 
 				case DurableJobQueueActionType.Deleted:
-					if (!isInputValueType && null != input)
+					if (!_isInputValueType && null != input)
 					{
-						throw new ArgumentException("input", "must be null");
+						throw new ArgumentException("must be null", "input");
 					}
-					if (!isPoisonValueType && null == poison)
+					if (!_isPoisonValueType && null == poison)
 					{
 						throw new ArgumentNullException("poison");
 					}
 					break;
 
 				case DurableJobQueueActionType.Poisoned:
-					if (!isInputValueType && null == input)
+					if (!_isInputValueType && null == input)
 					{
 						throw new ArgumentNullException("input");
 					}
-					if (!isPoisonValueType && null == poison)
+					if (!_isPoisonValueType && null == poison)
 					{
 						throw new ArgumentNullException("poison");
 					}
@@ -75,12 +76,12 @@ namespace EPS.Concurrency
 		/// DurableJobQueueAction{TQueue, TQueuePoison} implicitly.
 		/// </summary>
 		/// <remarks>	7/14/2011. </remarks>
-		/// <exception cref="ArgumentNullException">	Thrown when the given input is null. </exception>
 		/// <param name="input">	The input result. </param>
 		/// <returns>	The result of the operation. </returns>
+		[SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Supplying these static methods on a generic class makes them very difficult to use")]
 		public static implicit operator DurableJobQueueAction<TQueue, TQueuePoison>(DurableJobQueueAction<TQueue, object> input)
 		{
-			if (null == input) { throw new ArgumentNullException("input"); }
+			if (null == input) return null;
 
 			return new DurableJobQueueAction<TQueue, TQueuePoison>(input.ActionType, input.Input, default(TQueuePoison));
 		}
@@ -90,12 +91,12 @@ namespace EPS.Concurrency
 		/// DurableJobQueueAction{TQueue, TQueuePoison} implicitly.
 		/// </summary>
 		/// <remarks>	7/27/2011. </remarks>
-		/// <exception cref="ArgumentNullException">	Thrown when the given input is null. </exception>
 		/// <param name="input">	The input result. </param>
 		/// <returns>	The result of the operation. </returns>
+		[SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Supplying these static methods on a generic class makes them very difficult to use")]
 		public static implicit operator DurableJobQueueAction<TQueue, TQueuePoison>(DurableJobQueueAction<object, TQueuePoison> input)
 		{
-			if (null == input) { throw new ArgumentNullException("input"); }
+			if (null == input) return null;
 
 			return new DurableJobQueueAction<TQueue, TQueuePoison>(input.ActionType, default(TQueue), input.Poison);
 		}
@@ -103,7 +104,7 @@ namespace EPS.Concurrency
 
 	/// <summary>	Convenience class for creating instances of DurableJobQueueAction.  </summary>
 	/// <remarks>	7/27/2011. </remarks>
-	public class DurableJobQueueAction
+	public static class DurableJobQueueAction
 	{
 		/// <summary>	Creates an action description for a queued event. </summary>
 		/// <remarks>	7/27/2011. </remarks>

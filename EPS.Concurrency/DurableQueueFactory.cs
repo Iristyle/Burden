@@ -10,7 +10,7 @@ namespace EPS.Concurrency
 		private class DurableQueueFactoryExpressionWrapper<TInput, TPoison>
 			: IDurableJobQueueFactory
 		{
-			private Expression<Func<object, object, IDurableJobQueue<object, object>>> builder;
+			private Expression<Func<object, object, IDurableJobQueue<object, object>>> _builder;
 
 			/// <summary>
 			/// Initializes a new instance of the DurableQueueFactoryExpressionWrapper class.
@@ -18,10 +18,10 @@ namespace EPS.Concurrency
 			/// <param name="builder"></param>
 			public DurableQueueFactoryExpressionWrapper(Expression<Func<object, object, IDurableJobQueue<object, object>>> builder)
 			{
-				this.builder = builder;
+				this._builder = builder;
 			}
 
-			public IDurableJobQueue<TInput, TPoison> CreateDurableJobQueue<TInput, TPoison>()
+			public IDurableJobQueue<TQueueInput, TQueuePoison> CreateDurableJobQueue<TQueueInput, TQueuePoison>()
 			{
 				throw new NotImplementedException();
 			}

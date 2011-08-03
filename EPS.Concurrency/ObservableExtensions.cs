@@ -1,13 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Linq;
 
 namespace EPS.Concurrency
 {
 	/// <summary>	Adds some additional methods of creating Observables.  </summary>
 	/// <remarks>	7/8/2011. </remarks>
-	public class ObservableExtensions
+	public static class ObservableExtensions
 	{
 		/// <summary>
 		/// Creates a new observable from a standard callback pattern type API, for instance RestSharp, with ExecuteAsync(request, (response)
@@ -21,7 +20,8 @@ namespace EPS.Concurrency
 		/// <param name="parameter">	   	The parameter. </param>
 		/// <param name="asynchronousCall">	The asynchronous call. </param>
 		/// <returns>	An IObservable. </returns>
-		public static IObservable<TResult> FromCallbackPattern<T,TResult>(T parameter, Action<T, Action<TResult>> asynchronousCall)
+		[SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures", Justification = "Nested generics, while advanced, are perfectly acceptable within Actions, especially in this case where we leverage compiler inference")]
+		public static IObservable<TResult> FromCallbackPattern<T, TResult>(T parameter, Action<T, Action<TResult>> asynchronousCall)
 		{
 			if (null == parameter) { throw new ArgumentNullException("parameter"); }
 			if (null == asynchronousCall) { throw new ArgumentNullException("asynchronousCall"); }

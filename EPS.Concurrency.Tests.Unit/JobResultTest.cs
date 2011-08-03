@@ -21,7 +21,7 @@ namespace EPS.Concurrency.Tests.Unit
 		public void CreateOnError_HasJobResultTypeError()
 		{
 			var result = JobResult.CreateOnError(3, new ArgumentException());
-			Assert.Equal(JobResultType.Error, result.Type);
+			Assert.Equal(JobResultType.Error, result.ResultType);
 		}
 
 		[Fact]
@@ -56,7 +56,7 @@ namespace EPS.Concurrency.Tests.Unit
 		public void CreateOnCompletion_HasJobResultTypeCompletion()
 		{
 			var result = JobResult.CreateOnCompletion(3, "foo");
-			Assert.Equal(JobResultType.Completed, result.Type);
+			Assert.Equal(JobResultType.Completed, result.ResultType);
 		}
 
 		[Fact]
@@ -90,7 +90,7 @@ namespace EPS.Concurrency.Tests.Unit
 			var errorResult = JobResult.CreateOnError("foo", new ArgumentNullException());
 			var castResult = (JobResult<string, int>)errorResult;
 
-			Assert.Equal(errorResult.Type, castResult.Type);
+			Assert.Equal(errorResult.ResultType, castResult.ResultType);
 		}
 
 		[Fact]

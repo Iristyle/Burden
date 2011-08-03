@@ -3,20 +3,20 @@ using Xunit;
 
 namespace EPS.Concurrency.Tests.Unit
 {
-	public abstract class IDurableJobQueueFactoryTest<T>
+	public abstract class DurableJobQueueFactoryTest<T>
 		where T: IDurableJobQueueFactory
 	{
-		private Func<T> factory;
+		private Func<T> _factory;
 
-		public IDurableJobQueueFactoryTest(Func<T> factory)
+		protected DurableJobQueueFactoryTest(Func<T> factory)
 		{
-			this.factory = factory;
+			this._factory = factory;
 		}
 		
 		[Fact]
 		public void CreateDurableQueue_IsNotNull_ValueTypes()
 		{
-			var instance = factory();
+			var instance = _factory();
 			Assert.NotNull(instance.CreateDurableJobQueue<int, int>());
 		}
 
@@ -26,21 +26,21 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact]
 		public void CreateDurableQueue_IsNotNull_ReferenceTypes()
 		{
-			var instance = factory();
+			var instance = _factory();
 			Assert.NotNull(instance.CreateDurableJobQueue<Foo, Foo>());
 		}
 
 		[Fact]
-		public void CreateDurableQueue_IsNotNull_PoionedValueType()
+		public void CreateDurableQueue_IsNotNull_PoisonedValueType()
 		{
-			var instance = factory();
+			var instance = _factory();
 			Assert.NotNull(instance.CreateDurableJobQueue<int, Poison<int>>());
 		}
 
 		[Fact]
-		public void CreateDurableQueue_IsNotNull_PoionedReferenceType()
+		public void CreateDurableQueue_IsNotNull_PoisonedReferenceType()
 		{
-			var instance = factory();
+			var instance = _factory();
 			Assert.NotNull(instance.CreateDurableJobQueue<Foo, Poison<Foo>>());
 		}
 	}

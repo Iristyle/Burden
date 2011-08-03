@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace EPS.Concurrency
 {
@@ -40,14 +41,17 @@ namespace EPS.Concurrency
 
 		/// <summary>	Returns all poisoned items stored for this queue. </summary>
 		/// <returns>	An enumerable collection of poisoned items (that may be empty). </returns>
+		[SuppressMessage("Microsoft.Design", "CA1024:UsePropertiesWhereAppropriate", Justification = "Retrieving this enumeration from the queue is allowed to throw, and unfit for a property")]
 		IEnumerable<TQueuePoison> GetPoisoned();
 
 		/// <summary>	Returns all queue items stored for this queue. </summary>
 		/// <returns>	An enumerable collection of queue items (that may be empty). </returns>
+		[SuppressMessage("Microsoft.Design", "CA1024:UsePropertiesWhereAppropriate", Justification = "Retrieving this enumeration from the queue is allowed to throw, and unfit for a property")]
 		IEnumerable<TQueue> GetQueued();
 
 		/// <summary>	Returns all pending items stored for this queue. </summary>
 		/// <returns>	An enumerable collection of pending items (that may be empty). </returns>
+		[SuppressMessage("Microsoft.Design", "CA1024:UsePropertiesWhereAppropriate", Justification = "Retrieving this enumeration from the queue is allowed to throw, and unfit for a property")]
 		IEnumerable<TQueue> GetPending();
 	}
 }

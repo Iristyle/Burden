@@ -23,28 +23,28 @@ namespace EPS.Concurrency.Tests.Unit
 	}
 
 	public abstract class ObservableDurableJobQueueTest<TQueue, TQueuePoison>
-	: IDurableJobQueueTest<ObservableDurableJobQueue<TQueue, TQueuePoison>, TQueue, TQueuePoison>
+	: DurableJobQueueTest<ObservableDurableJobQueue<TQueue, TQueuePoison>, TQueue, TQueuePoison>
 	{
 		private static IDurableJobQueue<TQueue, TQueuePoison> GetTransient()
 		{
 			return new TransientJobQueue<TQueue, TQueuePoison>(GenericEqualityComparer<TQueue>.ByAllMembers(), 
 			GenericEqualityComparer<TQueuePoison>.ByAllMembers());
 		}
-		public ObservableDurableJobQueueTest(Func<TQueue, TQueuePoison> poisonConverter)
+		protected ObservableDurableJobQueueTest(Func<TQueue, TQueuePoison> poisonConverter)
 			: base(() => new ObservableDurableJobQueue<TQueue, TQueuePoison>(GetTransient()), poisonConverter)
 		{ }
 
 		[Fact]
 		public void Constructor_Throws_OnNullDurableJobQueue()
 		{
-			Assert.Throws<ArgumentNullException>(() => new ObservableDurableJobQueue<TQueue, TQueuePoison>(null));
+			Assert.Throws<ArgumentNullException>(() => { using (var q = new ObservableDurableJobQueue<TQueue, TQueuePoison>(null)) {} });
 		}
 
 		[Fact]
 		public void Constructor_Throws_WhenNestingObservableDurableJobQueues()
 		{
-			Assert.Throws<ArgumentException>(() => new ObservableDurableJobQueue<TQueue, TQueuePoison>(new 
-			ObservableDurableJobQueue<TQueue, TQueuePoison>(GetTransient())));
+			Assert.Throws<ArgumentException>(() => { using (var q = new ObservableDurableJobQueue<TQueue, TQueuePoison>(new 
+			ObservableDurableJobQueue<TQueue, TQueuePoison>(GetTransient()))) {} });
 				
 		}
 
@@ -56,28 +56,28 @@ namespace EPS.Concurrency.Tests.Unit
 		}
 
 		private Observation SubscribeForAction(DurableJobQueueActionType filterType, Action<
-		ObservableDurableJobQueue<TQueue, TQueuePoison>, TQueue, TQueuePoison> actions)		
+		ObservableDurableJobQueue<TQueue, TQueuePoison>, TQueue, TQueuePoison> actions)
 		{
-			var observation = new Observation() 
-			{ 
-				Input = fixture.CreateAnonymous<TQueue>(),
-				Poison = fixture.CreateAnonymous<TQueuePoison>()
-			};
-			var store = jobStorageFactory();
+			var observation = new Observation() {
+				Input = Fixture.CreateAnonymous<TQueue>(),
+				Poison = Fixture.CreateAnonymous<TQueuePoison>() };
 
-			var fired = new ManualResetEventSlim(false);
-			store.OnQueueAction.Subscribe(a =>
+			using (var store = JobStorageFactory())
+			using (var fired = new ManualResetEventSlim(false))
+			using (var subscription = store.OnQueueAction.Subscribe(a =>
 			{
 				if (a.ActionType == filterType)
 				{
 					observation.Action = a;
 					fired.Set();
 				}
-			});
-			actions(store, observation.Input, observation.Poison);
+			}))
+			{
+				actions(store, observation.Input, observation.Poison);
+				fired.Wait(TimeSpan.FromSeconds(2));
 
-			fired.Wait(TimeSpan.FromSeconds(2));
-			return observation;
+				return observation;
+			}			
 		}
 
 		[Fact]

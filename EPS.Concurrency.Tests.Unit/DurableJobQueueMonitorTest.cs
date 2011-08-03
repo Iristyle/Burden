@@ -136,14 +136,15 @@ DurableJobQueueMonitor.MinimumAllowedPollingInterval - TimeSpan.FromTicks(1), A.
 			var scheduler = new HistoricalScheduler();
 			var interval = TimeSpan.FromMinutes(minutes);
 			var monitor = new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, 20, interval, scheduler);
-			monitor.Subscribe();
-
-			A.CallTo(() => jobStorage.NextQueuedItem()).Returns(Item.From(new Incoming() { Id = 1 }));
-
-			//this is a little hacky, but give ourselves a 2 second timespan to make the call against our fake
-			scheduler.AdvanceBy(interval - TimeSpan.FromSeconds(2));
 			
-			A.CallTo(() => jobStorage.NextQueuedItem()).MustNotHaveHappened();
+			using (var subscription = monitor.Subscribe())
+			{
+				A.CallTo(() => jobStorage.NextQueuedItem()).Returns(Item.From(new Incoming() { Id = 1 }));
+
+				//this is a little hacky, but give ourselves a 2 second timespan to make the call against our fake
+				scheduler.AdvanceBy(interval - TimeSpan.FromSeconds(2));
+				A.CallTo(() => jobStorage.NextQueuedItem()).MustNotHaveHappened();
+			}
 		}
 
 		[Fact]
@@ -175,14 +176,15 @@ DurableJobQueueMonitor.MinimumAllowedPollingInterval - TimeSpan.FromTicks(1), A.
 
 			//advance the amount of time that would normally cause our queue to be totally flushed
 			scheduler.AdvanceBy(monitor.PollingInterval.Add(monitor.PollingInterval));
-			monitor.Subscribe();
+			using (var subscription = monitor.Subscribe())
+			{
+				//and now that we have a subscriber, elapse enough time to publish the queue contents
+				scheduler.AdvanceBy(monitor.PollingInterval);
+				scheduler.AdvanceBy(monitor.PollingInterval);
 
-			//and now that we have a subscriber, elapse enough time to publish the queue contents
-			scheduler.AdvanceBy(monitor.PollingInterval);
-			scheduler.AdvanceBy(monitor.PollingInterval);
-
-			//our transition method should have been called X times based on the list of valid items + 1 time for the null on the first scheduled execution, then an additional time w/ null for the next scheduled execution
-			A.CallTo(() => jobStorage.NextQueuedItem()).MustHaveHappened(Repeated.Exactly.Times(incomingItems.Length));
+				//our transition method should have been called X times based on the list of valid items + 1 time for the null on the first scheduled execution, then an additional time w/ null for the next scheduled execution
+				A.CallTo(() => jobStorage.NextQueuedItem()).MustHaveHappened(Repeated.Exactly.Times(incomingItems.Length));
+			}
 		}
 
 		[Fact]
@@ -196,13 +198,14 @@ DurableJobQueueMonitor.MinimumAllowedPollingInterval - TimeSpan.FromTicks(1), A.
 				.Concat(Enumerable.Repeat(Item.From(new Incoming() { Id = 2 }), 5))
 				.Concat(new [] { Item.None<Incoming>() }).ToArray();
 
-			monitor.Subscribe();
+			using (var subscription = monitor.Subscribe())
+			{
+				A.CallTo(() => jobStorage.NextQueuedItem()).ReturnsNextFromSequence(queuedItems);
 
-			A.CallTo(() => jobStorage.NextQueuedItem()).ReturnsNextFromSequence(queuedItems);
+				scheduler.AdvanceBy(monitor.PollingInterval);
 
-			scheduler.AdvanceBy(monitor.PollingInterval);
-
-			A.CallTo(() => jobStorage.NextQueuedItem()).MustHaveHappened(Repeated.Exactly.Times(queuedItems.Length));
+				A.CallTo(() => jobStorage.NextQueuedItem()).MustHaveHappened(Repeated.Exactly.Times(queuedItems.Length));
+			}
 		}
 
 		[Fact]
@@ -217,14 +220,15 @@ DurableJobQueueMonitor.MinimumAllowedPollingInterval - TimeSpan.FromTicks(1), A.
 				.Concat(Enumerable.Repeat(Item.From(new Incoming() { Id = 2 }), 5))
 				.Concat(new [] { Item.None<Incoming>() }).ToArray();
 
-			monitor.Subscribe();
+			using (var subscription = monitor.Subscribe())
+			{
+				A.CallTo(() => jobStorage.NextQueuedItem()).ReturnsNextFromSequence(queuedItems);
 
-			A.CallTo(() => jobStorage.NextQueuedItem()).ReturnsNextFromSequence(queuedItems);
+				scheduler.AdvanceBy(monitor.PollingInterval);
+				scheduler.AdvanceBy(monitor.PollingInterval);
 
-			scheduler.AdvanceBy(monitor.PollingInterval);
-			scheduler.AdvanceBy(monitor.PollingInterval);
-
-			A.CallTo(() => jobStorage.NextQueuedItem()).MustHaveHappened(Repeated.Exactly.Times(queuedItems.Length));
+				A.CallTo(() => jobStorage.NextQueuedItem()).MustHaveHappened(Repeated.Exactly.Times(queuedItems.Length));
+			}
 		}
 
 		[Fact]
@@ -243,14 +247,17 @@ DurableJobQueueMonitor.MinimumAllowedPollingInterval - TimeSpan.FromTicks(1), A.
 				.ToArray();
 
 			A.CallTo(() => jobStorage.NextQueuedItem()).ReturnsNextFromSequence(queuedItems.Concat(new [] { Item.None<Incoming>() }).ToArray());
-			monitor.Subscribe(publishedItem => { incomingItems.Add(publishedItem); });
-			scheduler.AdvanceBy(monitor.PollingInterval);
 
-			Assert.True(queuedItems.Select(item => item.Value).SequenceEqual(incomingItems, GenericEqualityComparer<Incoming>.ByAllMembers()));
+			using (var subscription = monitor.Subscribe(publishedItem =>{ incomingItems.Add(publishedItem);}))
+			{
+				scheduler.AdvanceBy(monitor.PollingInterval);
+
+				Assert.True(queuedItems.Select(item => item.Value).SequenceEqual(incomingItems, GenericEqualityComparer<Incoming>.ByAllMembers()));
+			}
 		}
 
 		[Fact]
-		public static void Subscribe_PublishesExactSequenceOfItmesOverMultipleElapsedIntervals()
+		public static void Subscribe_PublishesExactSequenceOfItemsOverMultipleElapsedIntervals()
 		{
 			var jobStorage = A.Fake<IDurableJobQueue<Incoming, Incoming>>();
 			var scheduler = new HistoricalScheduler();
@@ -265,17 +272,18 @@ DurableJobQueueMonitor.MinimumAllowedPollingInterval - TimeSpan.FromTicks(1), A.
 				.Concat(Enumerable.Repeat(Item.From(new Incoming() { Id = 1 }), 2))
 				.Concat(new [] { Item.None<Incoming>() }).ToArray();
 
-			monitor.Subscribe(publishedItem => { incomingItems.Add(publishedItem); });
+			using (var subscription = monitor.Subscribe(publishedItem =>{ incomingItems.Add(publishedItem);}))
+			{
+				A.CallTo(() => jobStorage.NextQueuedItem()).ReturnsNextFromSequence(queuedItems);
 
-			A.CallTo(() => jobStorage.NextQueuedItem()).ReturnsNextFromSequence(queuedItems);
+				scheduler.AdvanceBy(monitor.PollingInterval);
+				scheduler.AdvanceBy(monitor.PollingInterval);
+				scheduler.AdvanceBy(monitor.PollingInterval);
 
-			scheduler.AdvanceBy(monitor.PollingInterval);
-			scheduler.AdvanceBy(monitor.PollingInterval);
-			scheduler.AdvanceBy(monitor.PollingInterval);
-
-			Assert.True(queuedItems.Where(item => item.Success)
+				Assert.True(queuedItems.Where(item => item.Success)
 				.Select(item => item.Value)
 				.SequenceEqual(incomingItems, GenericEqualityComparer<Incoming>.ByAllMembers()));
+			}
 		}
 
 		[Fact]
@@ -291,18 +299,20 @@ scheduler);
 
 			List<Incoming> incomingItems = new List<Incoming>();
 
-			monitor.Subscribe(publishedItem => 
-			{ 
-				incomingItems.Add(publishedItem); 
+			using (var subscription = monitor.Subscribe(publishedItem =>
+			{
+				incomingItems.Add(publishedItem);
 				if (incomingItems.Count >= maxToSlurp)
 				{
 					completion.Set();
 				}
-			});
-			scheduler.AdvanceBy(monitor.PollingInterval + TimeSpan.FromTicks(1));
-			completion.Wait(TimeSpan.FromSeconds(3));
+			}))
+			{
+				scheduler.AdvanceBy(monitor.PollingInterval + TimeSpan.FromTicks(1));
+				completion.Wait(TimeSpan.FromSeconds(3));
 
-			Assert.Equal(maxToSlurp, incomingItems.Count);
+				Assert.Equal(maxToSlurp, incomingItems.Count);
+			}
 		}
 
 		[Fact]
@@ -330,13 +340,15 @@ scheduler);
 
 			A.CallTo(() => jobStorage.NextQueuedItem()).ReturnsNextFromSequence(queuedItems);
 
-			monitor.Subscribe(publishedItem => { incomingItems.Add(publishedItem); });
-			scheduler.AdvanceBy(monitor.PollingInterval);
-			scheduler.AdvanceBy(monitor.PollingInterval);
+			using (var subscription = monitor.Subscribe(publishedItem =>{ incomingItems.Add(publishedItem);}))
+			{
+				scheduler.AdvanceBy(monitor.PollingInterval);
+				scheduler.AdvanceBy(monitor.PollingInterval);
 
-			Assert.True(queuedItems.Take(maxToSlurp * 2)
-				.Select(item => item.Value)
-				.SequenceEqual(incomingItems, GenericEqualityComparer<Incoming>.ByAllMembers()));
+				Assert.True(queuedItems.Take(maxToSlurp * 2)
+					.Select(item => item.Value)
+					.SequenceEqual(incomingItems, GenericEqualityComparer<Incoming>.ByAllMembers()));
+			}
 		}
 	}
 }

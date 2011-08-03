@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 
@@ -10,10 +11,11 @@ namespace EPS.Concurrency
 	/// <typeparam name="TQueue">	   	Type of the queue. </typeparam>
 	/// <typeparam name="TQueuePoison">	Type of the queue poison. </typeparam>
 	public class ObservableDurableJobQueue<TQueue, TQueuePoison>
-		: IDurableJobQueue<TQueue, TQueuePoison>
+		: IDurableJobQueue<TQueue, TQueuePoison>, IDisposable
 	{
-		private readonly IDurableJobQueue<TQueue, TQueuePoison> durableJobQueue;
-		private readonly Subject<DurableJobQueueAction<TQueue, TQueuePoison>> onQueueAction =
+		private bool _disposed;
+		private readonly IDurableJobQueue<TQueue, TQueuePoison> _durableJobQueue;
+		private readonly Subject<DurableJobQueueAction<TQueue, TQueuePoison>> _onQueueAction =
 			new Subject<DurableJobQueueAction<TQueue, TQueuePoison>>();
 
 		/// <summary>	Constructor. </summary>
@@ -26,34 +28,77 @@ namespace EPS.Concurrency
 			var queueType = durableJobQueue.GetType();
 			if (queueType.IsGenericType && typeof(ObservableDurableJobQueue<,>).IsAssignableFrom(queueType.GetGenericTypeDefinition()))
 				{ throw new ArgumentException("Incoming queue instance is an ObservableDurableJobQueue.  Nesting not supported.", "durableJobQueue"); }
-			this.durableJobQueue = durableJobQueue;
+			this._durableJobQueue = durableJobQueue;
+		}
+
+		private void ThrowIfDisposed()
+		{
+			if (_disposed)
+			{
+				throw new ObjectDisposedException("this");
+			}
+		}
+
+		/// <summary>	Dispose of this object, cleaning up any resources it uses. </summary>
+		/// <remarks>	7/24/2011. </remarks>
+		public void Dispose()
+		{
+			if (!this._disposed)
+			{
+				Dispose(true);
+				GC.SuppressFinalize(this);
+			}
+		}
+
+		/// <summary>
+		/// Dispose of this object, cleaning up any resources it uses.  Will dispose the OnQueueAction subject, rendering queue monitoring impossible.
+		/// </summary>
+		/// <remarks>	7/24/2011. </remarks>
+		/// <param name="disposing">	true if resources should be disposed, false if not. </param>
+		protected virtual void Dispose(bool disposing)
+		{
+			if (disposing)
+			{
+				this._disposed = true;
+				_onQueueAction.Dispose();
+			}
 		}
 
 		/// <summary>	An IObservable thats fired when queue actions happens. </summary>
 		/// <value>	An IObservable of queue actions. </value>
+		/// <exception cref="ObjectDisposedException">	Thrown when the object has been disposed. </exception>
+		[SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures", Justification = "Nested generics, while advanced, are perfectly acceptable within Funcs and IObservables")]
 		public IObservable<DurableJobQueueAction<TQueue, TQueuePoison>> OnQueueAction 
 		{
-			get { return onQueueAction.AsObservable().Publish().RefCount(); }
+			get 
+			{
+				ThrowIfDisposed();
+				return _onQueueAction.AsObservable().Publish().RefCount(); 
+			}
 		}
 
 		/// <summary>	Adds a new item to the queue. </summary>
 		/// <remarks>	Delegates to the underlying job queue. Fires a notification on OnQueueAction. </remarks>
 		/// <param name="item">	The item. </param>
+		/// <exception cref="ObjectDisposedException">	Thrown when the object has been disposed. </exception>
 		public void Queue(TQueue item)
 		{
-			durableJobQueue.Queue(item);
-			onQueueAction.OnNext(DurableJobQueueAction.Queued(item));
+			ThrowIfDisposed();
+			_durableJobQueue.Queue(item);
+			_onQueueAction.OnNext(DurableJobQueueAction.Queued(item));
 		}
 
 		/// <summary>	Gets the next available queued item and transitions said item to the pending state. </summary>
 		/// <remarks>	Delegates to the underlying job queue. Fires a notification on OnQueueAction if the operation returned an item. </remarks>
 		/// <returns>	The item if an item was queued, otherwise null. </returns>
+		/// <exception cref="ObjectDisposedException">	Thrown when the object has been disposed. </exception>
 		public IItem<TQueue> NextQueuedItem()
 		{
-			var item = durableJobQueue.NextQueuedItem();
+			ThrowIfDisposed();
+			var item = _durableJobQueue.NextQueuedItem();
 			if (item.Success)
 			{
-				onQueueAction.OnNext(DurableJobQueueAction.Pending(item.Value));
+				_onQueueAction.OnNext(DurableJobQueueAction.Pending(item.Value));
 			}
 			return item;
 		}
@@ -61,7 +106,7 @@ namespace EPS.Concurrency
 		/// <summary>	Resets all pending items to the queued state. </summary>
 		public void ResetAllPendingToQueued()
 		{
-			durableJobQueue.ResetAllPendingToQueued();
+			_durableJobQueue.ResetAllPendingToQueued();
 		}
 
 		/// <summary>	Removes a queued item from the pending state. </summary>
@@ -71,11 +116,13 @@ namespace EPS.Concurrency
 		/// </remarks>
 		/// <param name="item">	The item. </param>
 		/// <returns>	true if it succeeds, false if it fails. </returns>
+		/// <exception cref="ObjectDisposedException">	Thrown when the object has been disposed. </exception>
 		public bool Complete(TQueue item)
 		{
-			var result = durableJobQueue.Complete(item);
+			ThrowIfDisposed();
+			var result = _durableJobQueue.Complete(item);
 			if (result)
-				onQueueAction.OnNext(DurableJobQueueAction.Completed(item));
+				_onQueueAction.OnNext(DurableJobQueueAction.Completed(item));
 			return result;
 		}
 
@@ -87,11 +134,13 @@ namespace EPS.Concurrency
 		/// <param name="item">		   	The original item. </param>
 		/// <param name="poisonedItem">	The original item, converted to its poisoned representation. </param>
 		/// <returns>	true if it succeeds, false if it fails. </returns>
+		/// <exception cref="ObjectDisposedException">	Thrown when the object has been disposed. </exception>
 		public bool Poison(TQueue item, TQueuePoison poisonedItem)
 		{
-			var result = durableJobQueue.Poison(item, poisonedItem);
+			ThrowIfDisposed();
+			var result = _durableJobQueue.Poison(item, poisonedItem);
 			if (result)
-				onQueueAction.OnNext(DurableJobQueueAction.Poisoned(item, poisonedItem));
+				_onQueueAction.OnNext(DurableJobQueueAction.Poisoned(item, poisonedItem));
 
 			return result;
 		}
@@ -100,11 +149,13 @@ namespace EPS.Concurrency
 		/// <remarks>	Delegates to the underlying job queue. Fires a notification on OnQueueAction if the operation was a success. </remarks>
 		/// <param name="poisonedItem">	The poisoned representation of an item. </param>
 		/// <returns>	true if it succeeds, false if it fails. </returns>
+		/// <exception cref="ObjectDisposedException">	Thrown when the object has been disposed. </exception>
 		public bool Delete(TQueuePoison poisonedItem)
 		{
-			var result = durableJobQueue.Delete(poisonedItem);
+			ThrowIfDisposed();
+			var result = _durableJobQueue.Delete(poisonedItem);
 			if (result)
-				onQueueAction.OnNext(DurableJobQueueAction.Deleted(poisonedItem));
+				_onQueueAction.OnNext(DurableJobQueueAction.Deleted(poisonedItem));
 			return result;
 		}
 
@@ -113,7 +164,7 @@ namespace EPS.Concurrency
 		/// <returns>	An enumerable collection of poisoned items (that may be empty). </returns>
 		public IEnumerable<TQueuePoison> GetPoisoned()
 		{
-			return durableJobQueue.GetPoisoned();
+			return _durableJobQueue.GetPoisoned();
 		}
 
 		/// <summary>	Returns all queue items stored for this queue. </summary>
@@ -121,7 +172,7 @@ namespace EPS.Concurrency
 		/// <returns>	An enumerable collection of queue items (that may be empty). </returns>
 		public IEnumerable<TQueue> GetQueued()
 		{
-			return durableJobQueue.GetQueued();
+			return _durableJobQueue.GetQueued();
 		}
 
 		/// <summary>	Returns all pending items stored for this queue. </summary>
@@ -129,7 +180,7 @@ namespace EPS.Concurrency
 		/// <returns>	An enumerable collection of pending items (that may be empty). </returns>
 		public IEnumerable<TQueue> GetPending()
 		{
-			return durableJobQueue.GetPending();
+			return _durableJobQueue.GetPending();
 		}
 	}
 }

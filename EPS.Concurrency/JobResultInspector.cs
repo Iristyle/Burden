@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace EPS.Concurrency
 {
@@ -7,10 +8,10 @@ namespace EPS.Concurrency
 	/// <typeparam name="TJobInput">   	Type of the job input. </typeparam>
 	/// <typeparam name="TJobOutput">  	Type of the job output. </typeparam>
 	/// <typeparam name="TQueuePoison">	Type of the queue poison. </typeparam>
-	internal class JobResultInspector<TJobInput, TJobOutput, TQueuePoison> 
+	internal sealed class JobResultInspector<TJobInput, TJobOutput, TQueuePoison> 
 		: IJobResultInspector<TJobInput, TJobOutput, TQueuePoison>
 	{
-		private readonly Func<JobResult<TJobInput, TJobOutput>, JobQueueAction<TQueuePoison>> inspector;
+		private readonly Func<JobResult<TJobInput, TJobOutput>, JobQueueAction<TQueuePoison>> _inspector;
 		
 		/// <summary>	Constructor an instance of an IJobResultInspector given an inspector Func. </summary>
 		/// <remarks>	7/24/2011. </remarks>
@@ -19,7 +20,7 @@ namespace EPS.Concurrency
 		public JobResultInspector(Func<JobResult<TJobInput, TJobOutput>, JobQueueAction<TQueuePoison>> inspector)
 		{
 			if (null == inspector) { throw new ArgumentNullException("inspector"); }
-			this.inspector = inspector;
+			this._inspector = inspector;
 		}
 
 		/// <summary>	Inspects. </summary>
@@ -30,7 +31,7 @@ namespace EPS.Concurrency
 		public JobQueueAction<TQueuePoison> Inspect(JobResult<TJobInput, TJobOutput> jobResult)
 		{
 			if (null == jobResult) { throw new ArgumentNullException("jobResult"); }
-			return inspector(jobResult);
+			return _inspector(jobResult);
 		}
 	}
 
@@ -46,6 +47,7 @@ namespace EPS.Concurrency
 		/// <typeparam name="TQueuePoison">	Type of the queue poison. </typeparam>
 		/// <param name="inspector">	The inspector Func. </param>
 		/// <returns>	An IJobResultInspector given a simple Func, that can be used to manufacturer job poisons. </returns>
+		[SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures", Justification = "Nested generics, while advanced, are perfectly acceptable within Funcs")]
 		public static IJobResultInspector<TJobInput, TJobOutput, TQueuePoison> FromInspector<TJobInput, TJobOutput, TQueuePoison>(Func<JobResult<TJobInput, TJobOutput>, JobQueueAction<TQueuePoison>> inspector)
 		{
 			if (null == inspector) { throw new ArgumentNullException("inspector"); }
@@ -65,6 +67,7 @@ namespace EPS.Concurrency
 		/// An IJobResultInspector given a simple Func, that will manufacturer job poisons, given a simple mapping where JobResultType.Completed
 		/// is output as JobQueueActionType.Complete, otherwise the JobQueueAction is returned as JobQueueActionType.Poisoned.
 		/// </returns>
+		[SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures", Justification = "Nested generics, while advanced, are perfectly acceptable within Funcs")]
 		public static IJobResultInspector<TJobInput, TJobOutput, Poison<TJobInput>> FromJobSpecification<TJobInput, TJobOutput>(Func<TJobInput, TJobOutput> jobAction)
 		{
 			if (null == jobAction) { throw new ArgumentNullException("jobAction"); }
@@ -72,7 +75,7 @@ namespace EPS.Concurrency
 			return new JobResultInspector<TJobInput, TJobOutput, Poison<TJobInput>>(result =>
 			{
 				//success
-				if (result.Type == JobResultType.Completed)
+				if (result.ResultType == JobResultType.Completed)
 					return new JobQueueAction<Poison<TJobInput>>(JobQueueActionType.Complete);
 
 				//poison

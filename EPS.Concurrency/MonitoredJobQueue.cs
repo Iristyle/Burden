@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Threading;
@@ -10,15 +11,16 @@ namespace EPS.Concurrency
 	/// <typeparam name="TInput"> 	Type of the input. </typeparam>
 	/// <typeparam name="TOutput">	Type of the output. </typeparam>
 	/// <typeparam name="TPoison">	Type of the poison. </typeparam>
+	[SuppressMessage("Microsoft.Design", "CA1005:AvoidExcessiveParametersOnGenericTypes", Justification = "The heavy use of generics is mitigated by numerous static helpers that use compiler inference")]
 	public class MonitoredJobQueue<TInput, TOutput, TPoison>
 		: IMonitoredJobQueue<TInput, TOutput, TPoison>
 	{
 		private bool _disposed;
-		private readonly ObservableDurableJobQueue<TInput, TPoison> durableQueue;
-		private readonly AutoJobExecutionQueue<TInput, TOutput> jobQueue;
-		private readonly DurableJobQueueMonitor<TInput, TPoison> monitor;
-		private readonly JobResultJournaler<TInput, TOutput, TPoison> resultJournaler;
-		private readonly IDisposable subscription;
+		private readonly ObservableDurableJobQueue<TInput, TPoison> _durableQueue;
+		private readonly AutoJobExecutionQueue<TInput, TOutput> _jobQueue;
+		private readonly DurableJobQueueMonitor<TInput, TPoison> _monitor;
+		private readonly JobResultJournalWriter<TInput, TOutput, TPoison> _resultJournaler;
+		private readonly IDisposable _subscription;
 
 		//creation calls should go through the static factory 
 		internal MonitoredJobQueue(ObservableDurableJobQueue<TInput, TPoison> durableQueue, Func<TInput, TOutput> jobAction,
@@ -42,16 +44,16 @@ namespace EPS.Concurrency
 			{
 				throw new ArgumentNullException("scheduler");
 			}
-			this.durableQueue = durableQueue;
-			this.monitor = new DurableJobQueueMonitor<TInput, TPoison>(durableQueue, maxQueueItemsToPublishPerInterval,
+			this._durableQueue = durableQueue;
+			this._monitor = new DurableJobQueueMonitor<TInput, TPoison>(durableQueue, maxQueueItemsToPublishPerInterval,
 			pollingInterval, scheduler);
-			this.jobQueue = new AutoJobExecutionQueue<TInput, TOutput>(scheduler, maxConcurrentJobsToExecute, maxConcurrentJobsToExecute);
-			this.resultJournaler = new JobResultJournaler<TInput, TOutput, TPoison>(jobQueue.WhenJobCompletes, resultsInspector,
+			this._jobQueue = new AutoJobExecutionQueue<TInput, TOutput>(scheduler, maxConcurrentJobsToExecute, maxConcurrentJobsToExecute);
+			this._resultJournaler = new JobResultJournalWriter<TInput, TOutput, TPoison>(_jobQueue.WhenJobCompletes, resultsInspector,
 			durableQueue, null, scheduler);
 
-			this.subscription = monitor
+			this._subscription = _monitor
 			.SubscribeOn(scheduler)
-			.Subscribe(input => jobQueue.Add(input, jobAction));
+			.Subscribe(input => _jobQueue.Add(input, jobAction));
 		}
 
 		/// <summary>	Dispose of this object, cleaning up any resources it uses. </summary>
@@ -77,7 +79,10 @@ namespace EPS.Concurrency
 			{
 				this._disposed = true;
 				CancelQueuedAndWaitForExecutingJobsToComplete(TimeSpan.FromSeconds(20));
-				subscription.Dispose();
+				_jobQueue.Dispose();
+				_subscription.Dispose();
+				_resultJournaler.Dispose();
+				_durableQueue.Dispose();
 			}
 		}
 
@@ -85,7 +90,7 @@ namespace EPS.Concurrency
 		/// <value>	A sequence of observable durable queue notifications. </value>
 		public IObservable<DurableJobQueueAction<TInput, TPoison>> OnQueueAction
 		{
-			get { return durableQueue.OnQueueAction; }
+			get { return _durableQueue.OnQueueAction; }
 		}
 
 		/// <summary>
@@ -94,43 +99,43 @@ namespace EPS.Concurrency
 		/// <value>	A sequence of observable job completion notifications. </value>
 		public IObservable<JobResult<TInput, TOutput>> OnJobCompletion 
 		{
-			get { return jobQueue.WhenJobCompletes; }
+			get { return _jobQueue.WhenJobCompletes; }
 		}
 
 		/// <summary>	Gets the maximum number of concurrent jobs allowed to execute for this queue. </summary>
 		/// <value>	The maximum allowed concurrent jobs. </value>
 		public int MaxConcurrent 
 		{ 
-			get { return jobQueue.MaxConcurrent; }
-			set { jobQueue.MaxConcurrent = MaxConcurrent; }
+			get { return _jobQueue.MaxConcurrent; }
+			set { _jobQueue.MaxConcurrent = value; }
 		}
 
 		/// <summary>	Gets the number of running jobs from the job execution queue. </summary>
 		/// <value>	The number of running jobs. </value>
 		public int RunningCount
 		{
-			get { return jobQueue.RunningCount; }
+			get { return _jobQueue.RunningCount; }
 		}
 
 		/// <summary>	Gets the number of queued jobs from the job execution queue. </summary>
 		/// <value>	The number of queued jobs. </value>
 		public int QueuedCount
 		{
-			get { return jobQueue.QueuedCount; }
+			get { return _jobQueue.QueuedCount; }
 		}
 		
 		/// <summary>	Gets the maximum allowable queue items to publish per interval, presently 50000. </summary>
 		/// <value>	The maximum allowable queue items to publish per interval, presently 50000. </value>
 		public int MaxQueueItemsToPublishPerInterval
 		{
-			get { return this.monitor.MaxQueueItemsToPublishPerInterval; }
+			get { return this._monitor.MaxQueueItemsToPublishPerInterval; }
 		}
 
 		/// <summary>	Gets the polling interval. </summary>
 		/// <value>	The polling interval. </value>
 		public TimeSpan PollingInterval
 		{
-			get { return this.monitor.PollingInterval; }
+			get { return this._monitor.PollingInterval; }
 		}
 
 		/// <summary>	Adds a job.  </summary>
@@ -138,7 +143,7 @@ namespace EPS.Concurrency
 		/// <param name="input">	The input. </param>
 		public void AddJob(TInput input)
 		{
-			durableQueue.Queue(input);
+			_durableQueue.Queue(input);
 		}
 
 		/// <summary>	Cancel queued and wait for executing jobs to complete. </summary>
@@ -146,13 +151,13 @@ namespace EPS.Concurrency
 		public void CancelQueuedAndWaitForExecutingJobsToComplete(TimeSpan timeout)
 		{
 			var manualResetEventSlim = new ManualResetEventSlim(false);
-			using (var completed = jobQueue.WhenQueueEmpty
-				.Do(n => { var @false = false; }, () => manualResetEventSlim.Set())
+			using (var completed = _jobQueue.WhenQueueEmpty
+				.Do(n => {}, () => manualResetEventSlim.Set())
 				.Subscribe())
 			{
-				jobQueue.CancelOutstandingJobs();
+				_jobQueue.CancelOutstandingJobs();
 
-				if (jobQueue.RunningCount != 0)
+				if (_jobQueue.RunningCount != 0)
 				{
 					manualResetEventSlim.Wait(timeout);
 				}
@@ -195,6 +200,8 @@ namespace EPS.Concurrency
 		/// <returns>	An IMonitoredJobQueue instance that simplifies queuing inputs. </returns>
 		/// <exception cref="ArgumentNullException">	  	Thrown when the factory or action are null. </exception>
 		/// <exception cref="ArgumentOutOfRangeException">	Thrown when the maximum queue items to publish per interval is too high or low. </exception>
+		[SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "Disposables are now responsibility of MonitoredJobQueue")]
+		[SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures", Justification = "Nested generics, while advanced, are perfectly acceptable within Funcs and we get to use compiler inference here")]
 		public static IMonitoredJobQueue<TInput, TOutput, Poison<TInput>> Create<TInput, TOutput>(IDurableJobQueueFactory durableQueueFactory,
 			Func<TInput, TOutput> jobAction, int maxConcurrentJobsToExecute)
 		{
@@ -219,6 +226,8 @@ namespace EPS.Concurrency
 		/// <returns>	An IMonitoredJobQueue instance that simplifies queuing inputs. </returns>
 		/// <exception cref="ArgumentNullException">	  	Thrown when the factory, job queue or results inspectors are null. </exception>
 		/// <exception cref="ArgumentOutOfRangeException">	Thrown when the maximum queue items to publish per interval is too high or low. </exception>
+		[SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "Disposables are now responsibility of MonitoredJobQueue")]
+		[SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures", Justification = "Nested generics, while advanced, are perfectly acceptable within Funcs and we get to use compiler inference here")]
 		public static IMonitoredJobQueue<TInput, TOutput, TPoison> Create<TInput, TOutput, TPoison>(IDurableJobQueueFactory durableQueueFactory,
 			Func<TInput, TOutput> jobAction, int maxConcurrentJobsToExecute, IJobResultInspector<TInput, TOutput, TPoison> resultsInspector)
 		{
@@ -234,13 +243,14 @@ namespace EPS.Concurrency
 		/// <typeparam name="TPoison">	Type of the poison. </typeparam>
 		/// <param name="durableQueueFactory">					A durable queue to which all job information is written in a fail-safe manner. </param>
 		/// <param name="jobAction">							The job action. </param>
-		/// <param name="">										The. </param>
 		/// <param name="resultsInspector">						The results inspector. </param>
 		/// <param name="maxConcurrentJobsToExecute">	The maximum queue items to execute (which manipulates the maximum queue items published
 		/// 											per interval based on an assumed 1/2 sec per job). </param>
 		/// <returns>	An IMonitoredJobQueue instance that simplifies queuing inputs. </returns>
 		/// <exception cref="ArgumentNullException">	  	Thrown when the factory, job queue or results inspectors are null. </exception>
 		/// <exception cref="ArgumentOutOfRangeException">	Thrown when the maximum queue items to publish per interval is too high or low. </exception>
+		[SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "Disposables are now responsibility of MonitoredJobQueue")]
+		[SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures", Justification = "Nested generics, while advanced, are perfectly acceptable within Funcs and we get to use compiler inference here")]
 		public static IMonitoredJobQueue<TInput, TOutput, TPoison> Create<TInput, TOutput, TPoison>(IDurableJobQueueFactory durableQueueFactory,
 			Func<TInput, TOutput> jobAction, int maxConcurrentJobsToExecute, Func<JobResult<TInput, TOutput>, JobQueueAction<TPoison>> resultsInspector)
 		{
@@ -265,6 +275,8 @@ namespace EPS.Concurrency
 		/// <exception cref="ArgumentNullException">	  	Thrown when the factory or action are null. </exception>
 		/// <exception cref="ArgumentOutOfRangeException">	Thrown when the maximum queue items to publish per interval is too high or low,
 		/// 													or the polling interval is too fast or slow. </exception>
+		[SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "Disposables are now responsibility of MonitoredJobQueue")]
+		[SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures", Justification = "Nested generics, while advanced, are perfectly acceptable within Funcs and we get to use compiler inference here")]
 		public static IMonitoredJobQueue<TInput, TOutput, Poison<TInput>> Create<TInput, TOutput>(IDurableJobQueueFactory durableQueueFactory,
 			Func<TInput, TOutput> jobAction, int maxConcurrentJobsToExecute, TimeSpan pollingInterval)
 		{
@@ -291,6 +303,8 @@ namespace EPS.Concurrency
 		/// <exception cref="ArgumentNullException">	  	Thrown when the factory, job queue or results inspectors are null. </exception>
 		/// <exception cref="ArgumentOutOfRangeException">	Thrown when the maximum queue items to publish per interval is too high or low,
 		/// 													or the polling interval is too fast or slow. </exception>
+		[SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "Disposables are now responsibility of MonitoredJobQueue")]
+		[SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures", Justification = "Nested generics, while advanced, are perfectly acceptable within Funcs and we get to use compiler inference here")]
 		public static IMonitoredJobQueue<TInput, TOutput, TPoison> Create<TInput, TOutput, TPoison>(IDurableJobQueueFactory durableQueueFactory,
 			Func<TInput, TOutput> jobAction, int maxConcurrentJobsToExecute, IJobResultInspector<TInput, TOutput, TPoison> resultsInspector,
 			TimeSpan pollingInterval)
@@ -306,7 +320,6 @@ namespace EPS.Concurrency
 		/// <typeparam name="TPoison">	Type of the poison. </typeparam>
 		/// <param name="durableQueueFactory">					A durable queue to which all job information is written in a fail-safe manner. </param>
 		/// <param name="jobAction">							The job action. </param>
-		/// <param name="">										The. </param>
 		/// <param name="resultsInspector">						The results inspector. </param>
 		/// <param name="maxConcurrentJobsToExecute">	The maximum queue items to execute (which manipulates the maximum queue items published
 		/// 											per interval based on an assumed 1/2 sec per job). </param>
@@ -315,6 +328,8 @@ namespace EPS.Concurrency
 		/// <exception cref="ArgumentNullException">	  	Thrown when the factory, job queue or results inspectors are null. </exception>
 		/// <exception cref="ArgumentOutOfRangeException">	Thrown when the maximum queue items to publish per interval is too high or low,
 		/// 													or the polling interval is too fast or slow. </exception>
+		[SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "Disposables are now responsibility of MonitoredJobQueue")]
+		[SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures", Justification = "Nested generics, while advanced, are perfectly acceptable within Funcs and we get to use compiler inference here")]
 		public static IMonitoredJobQueue<TInput, TOutput, TPoison> Create<TInput, TOutput, TPoison>(IDurableJobQueueFactory durableQueueFactory,
 			Func<TInput, TOutput> jobAction, int maxConcurrentJobsToExecute, Func<JobResult<TInput, TOutput>, JobQueueAction<TPoison>> resultsInspector, 
 			TimeSpan pollingInterval)
@@ -324,6 +339,9 @@ namespace EPS.Concurrency
 			LocalScheduler.Default);
 		}
 
+		[SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "Disposables are now responsibility of MonitoredJobQueue")]
+		[SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures", Justification = "Nested generics, while advanced, are perfectly acceptable within Funcs and we get to use compiler inference here")]
+		[SuppressMessage("Gendarme.Rules.Performance", "AvoidUncalledPrivateCodeRule", Justification = "Used by test classes to change scheduler")]
 		internal static IMonitoredJobQueue<TInput, TOutput, TPoison> Create<TInput, TOutput, TPoison>(IDurableJobQueueFactory durableQueueFactory,
 			Func<TInput, TOutput> jobAction, int maxConcurrentJobsToExecute, Func<JobResult<TInput, TOutput>, JobQueueAction<TPoison>> resultsInspector,
 			TimeSpan pollingInterval, int maxQueueItemsToPublishPerInterval, IScheduler scheduler)

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using EPS.Concurrency.Tests.Unit;
 using EPS.Test.Redis;
 using ServiceStack.Redis;
@@ -23,15 +24,15 @@ namespace EPS.Concurrency.Redis.Tests.Integration
 	}
 
 	public abstract class RedisJobQueueTest<TQueue, TQueuePoison>
-		: IDurableJobQueueTest<RedisJobQueue<TQueue, TQueuePoison>, TQueue, TQueuePoison>
+		: DurableJobQueueTest<RedisJobQueue<TQueue, TQueuePoison>, TQueue, TQueuePoison>
 	{
 		private static IRedisClientsManager GetClientManager()
 		{
 			var redisConnection = RedisHostManager.Current();
-			return new BasicRedisClientManager(new string[] { String.Format("{0}:{1}", redisConnection.Host, redisConnection.Port) });
+			return new BasicRedisClientManager(new string[] { String.Format(CultureInfo.InvariantCulture, "{0}:{1}", redisConnection.Host, redisConnection.Port) });
 		}
 
-		public RedisJobQueueTest(Func<TQueue, TQueuePoison> poisonConverter) :
+		protected RedisJobQueueTest(Func<TQueue, TQueuePoison> poisonConverter) :
 			base(() => new RedisJobQueue<TQueue, TQueuePoison>(GetClientManager(), QueueNames.Default), poisonConverter)
 		{ }
 

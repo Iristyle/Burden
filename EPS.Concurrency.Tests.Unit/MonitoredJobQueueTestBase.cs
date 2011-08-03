@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Concurrency;
 using System.Threading;
 using EPS.Utility;
@@ -7,33 +8,34 @@ using Xunit;
 
 namespace EPS.Concurrency.Tests.Unit
 {
-	public abstract class IMonitoredJobQueueTest<TMonitoredQueue, TInput, TOutput, TPoison>
+	[SuppressMessage("Microsoft.Design", "CA1005:AvoidExcessiveParametersOnGenericTypes", Justification = "Non-issue for test classes really")]
+	public abstract class MonitoredJobQueueTestBase<TMonitoredQueue, TInput, TOutput, TPoison>
 		where TMonitoredQueue : IMonitoredJobQueue<TInput, TOutput, TPoison>
 	{
-		private class TransientJobQueueFactory
+		public class TransientJobQueueFactory
 			: IDurableJobQueueFactory
 		{
-			public IDurableJobQueue<TInput, TPoison> CreateDurableJobQueue<TInput, TPoison>()
+			public IDurableJobQueue<TQueueInput, TQueuePoison> CreateDurableJobQueue<TQueueInput, TQueuePoison>()
 			{
-				return new TransientJobQueue<TInput, TPoison>(GenericEqualityComparer<TInput>.ByAllMembers(), GenericEqualityComparer<TPoison>.ByAllMembers());
+				return new TransientJobQueue<TQueueInput, TQueuePoison>(GenericEqualityComparer<TQueueInput>.ByAllMembers(), GenericEqualityComparer<TQueuePoison>.ByAllMembers());
 			}
 		}
 
-		protected IFixture fixture = new Fixture();
-		protected Func<IScheduler, IDurableJobQueueFactory, IMonitoredJobQueue<TInput, TOutput, TPoison>> monitoredJobQueueFactory;
-		protected IDurableJobQueueFactory durableQueueFactory = new TransientJobQueueFactory();
-		protected IDurableJobQueue<TInput, TPoison> durableQueue = new TransientJobQueue<TInput, TPoison>(GenericEqualityComparer<TInput>.ByAllMembers(), GenericEqualityComparer<TPoison>.ByAllMembers());
+		private readonly Fixture _fixture = new Fixture();
+		private readonly Func<IScheduler, IDurableJobQueueFactory, IMonitoredJobQueue<TInput, TOutput, TPoison>> _monitoredJobQueueFactory;
+		private readonly TransientJobQueueFactory _durableQueueFactory = new TransientJobQueueFactory();
 
-		public IMonitoredJobQueueTest(Func<IScheduler, IDurableJobQueueFactory, IMonitoredJobQueue<TInput, TOutput, TPoison>> monitoredJobQueueFactory)
+		[SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures", Justification = "Nested generics, while advanced, are perfectly acceptable within Funcs")]
+		protected MonitoredJobQueueTestBase(Func<IScheduler, IDurableJobQueueFactory, IMonitoredJobQueue<TInput, TOutput, TPoison>> monitoredJobQueueFactory)
 		{
-			this.monitoredJobQueueFactory = monitoredJobQueueFactory;
+			this._monitoredJobQueueFactory = monitoredJobQueueFactory;
 		}
 		
 		[Fact]
 		public void AddJob_DoesNotThrow()
 		{
-			var queue = monitoredJobQueueFactory(new HistoricalScheduler(), durableQueueFactory);
-			Assert.DoesNotThrow(() => queue.AddJob(fixture.CreateAnonymous<TInput>()));
+			var queue = _monitoredJobQueueFactory(new HistoricalScheduler(), _durableQueueFactory);
+			Assert.DoesNotThrow(() => queue.AddJob(_fixture.CreateAnonymous<TInput>()));
 		}
 
 		//there's really only one thing we care about here -- that a job passes from input -> durable queue -> monitor -> job execution queue -> job result journaler
@@ -45,7 +47,7 @@ namespace EPS.Concurrency.Tests.Unit
 			var monitoredQueue = monitoredJobQueueFactory(new HistoricalScheduler(), durableQueue);
 			TInput input = fixture.CreateAnonymous<TInput>();
 			monitoredQueue.AddJob(input);
-			scheduler.AdvanceBy(TimeSpan.FromSeconds(30));
+			scheduler.AdvanceBy(TimeSpan.FromSeconds(5));
 
 			A.CallTo(() => durableQueue.Queue(A<TInput>.That.IsEqualTo(input))).MustHaveHappened(Repeated.Exactly.Once);
 		}
@@ -53,58 +55,69 @@ namespace EPS.Concurrency.Tests.Unit
 
 		class CallCount
 		{
-			public int Expected { get; set; }
+			public IMonitoredJobQueue<TInput, TOutput, TPoison> MonitoredQueue { get; set; }
 			public int Actual { get; set; }
 		}
 
-		private CallCount GetOnQueueActionCallCount(DurableJobQueueActionType filter)
+		private CallCount GetOnQueueActionCallCount(DurableJobQueueActionType filter, int maxConcurrent, int jobsToCreate)
 		{
-			HistoricalScheduler scheduler = new HistoricalScheduler();
-			var monitoredQueue = monitoredJobQueueFactory(new HistoricalScheduler(), durableQueueFactory);
+			var scheduler = new HistoricalScheduler();
 			var queuedEvent = new ManualResetEventSlim(false);
-			var callCount = new CallCount() { Expected = monitoredQueue.MaxQueueItemsToPublishPerInterval };
-
-			monitoredQueue.OnQueueAction.Subscribe(action =>
+			var callCount = new CallCount() 
 			{
+				MonitoredQueue = _monitoredJobQueueFactory(scheduler, _durableQueueFactory),
+			};
+
+			callCount.MonitoredQueue.MaxConcurrent = maxConcurrent;
+			using (var subscription = callCount.MonitoredQueue.OnQueueAction
+			.Subscribe(action =>{
 				if (action.ActionType == filter)
 				{
 					++callCount.Actual;
-					if (callCount.Actual == monitoredQueue.MaxQueueItemsToPublishPerInterval)
+					if (callCount.Actual == jobsToCreate)
 						queuedEvent.Set();
-				}
-			});
 
-			foreach (var input in fixture.CreateMany<TInput>(monitoredQueue.MaxQueueItemsToPublishPerInterval))
-				monitoredQueue.AddJob(input);
+					//else if (callCount.Actual == callCount.MonitoredQueue.MaxQueueItemsToPublishPerInterval)
+					//	queuedEvent.Set();
+				}}))
+			{
+				foreach (var input in _fixture.CreateMany<TInput>(jobsToCreate))
+					callCount.MonitoredQueue.AddJob(input);
 
-			scheduler.AdvanceBy(monitoredQueue.PollingInterval.Add(TimeSpan.FromSeconds(1)));
+				scheduler.AdvanceBy(callCount.MonitoredQueue.PollingInterval.Add(TimeSpan.FromSeconds(1)));
 
-			queuedEvent.Wait(TimeSpan.FromSeconds(5));
+				queuedEvent.Wait(TimeSpan.FromSeconds(20));
 
-			return callCount;
+				return callCount;
+			}
 		}
 
 		[Fact]
 		public void MonitoredQueue_MoveItemsThrough_Queued_State()
 		{
-			var calls = GetOnQueueActionCallCount(DurableJobQueueActionType.Queued);
-			Assert.Equal(calls.Expected, calls.Actual);
+			var jobs = 10;
+			var calls = GetOnQueueActionCallCount(DurableJobQueueActionType.Queued, 5, jobs);
+			Assert.Equal(jobs, calls.Actual);
+			calls.MonitoredQueue.Dispose();
 		}
 
 		[Fact]
 		public void MonitoredQueue_MoveItemsThrough_Pending_State()
 		{
-			var calls = GetOnQueueActionCallCount(DurableJobQueueActionType.Pending);
-			Assert.Equal(calls.Expected, calls.Actual);
+			var jobs = 10;
+			var calls = GetOnQueueActionCallCount(DurableJobQueueActionType.Pending, 5, jobs);
+			Assert.Equal(jobs, calls.Actual);
+			calls.MonitoredQueue.Dispose();
 		}
 
 		[Fact]
 		public void MonitoredQueue_MoveItemsThrough_Completed_State()
 		{
-			var calls = GetOnQueueActionCallCount(DurableJobQueueActionType.Completed);
-			Assert.Equal(calls.Expected, calls.Actual);
+			var jobs = 10;
+			var calls = GetOnQueueActionCallCount(DurableJobQueueActionType.Completed, 5, jobs);
+			Assert.Equal(jobs, calls.Actual);
+			calls.MonitoredQueue.Dispose();
 		}
-
 
 		class ExecutionInfo
 		{
@@ -114,7 +127,7 @@ namespace EPS.Concurrency.Tests.Unit
 		}
 
 		/*
-		private ExecutionInfo GetTransitionNextQueuedItemToPending_CallCount()
+		private ExecutionInfo GetNextQueuedItem_CallCount()
 		{
 			HistoricalScheduler scheduler = new HistoricalScheduler();
 			var executionInfo = new ExecutionInfo()
@@ -124,7 +137,7 @@ namespace EPS.Concurrency.Tests.Unit
 			};
 
 			int callsMade = 0;
-			A.CallTo(() => durableQueue.TransitionNextQueuedItemToPending())
+			A.CallTo(() => durableQueue.NextQueuedItem())
 				.Invokes(call => Interlocked.Increment(ref callsMade));
 
 			foreach (var input in executionInfo.Inputs)
@@ -159,7 +172,7 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact]
 		public void AddJob_PullsFromDurableStorage_ExecutingJobs()
 		{
-			var info = GetTransitionNextQueuedItemToPending_CallCount();
+			var info = GetNextQueuedItem_CallCount();
 
 			Assert.True(info.Inputs.Take(info.CallsMade).UnsortedSequenceEqual(jobsExecuted.Take(info.CallsMade), GenericEqualityComparer<TInput>.
 			ByAllMembers()));
@@ -168,28 +181,28 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact]
 		public void AddJob_CallsInspector()
 		{
-			GetTransitionNextQueuedItemToPending_CallCount();
+			GetNextQueuedItem_CallCount();
 			Assert.NotEmpty(jobsInspected);
 		}
 
 		[Fact]
 		public void AddJob_CallInspector_OnEachResult()
 		{
-			int callsMade = GetTransitionNextQueuedItemToPending_CallCount().CallsMade;
+			int callsMade = GetNextQueuedItem_CallCount().CallsMade;
 			Assert.Equal(callsMade, jobsInspected.Count);
 		}
 
 		[Fact]
 		public void AddJob_Calls_Complete_AtLeastOnce()
 		{
-			GetTransitionNextQueuedItemToPending_CallCount();
+			GetNextQueuedItem_CallCount();
 			A.CallTo(() => durableQueue.Complete(A<TInput>.Ignored)).MustHaveHappened(Repeated.AtLeast.Once);
 		}
 
 		[Fact]
 		public void AddJob_Calls_Complete_ExpectedNumberOfTimes()
 		{
-			int callsMade = GetTransitionNextQueuedItemToPending_CallCount().CallsMade;
+			int callsMade = GetNextQueuedItem_CallCount().CallsMade;
 			A.CallTo(() => durableQueue.Complete(A<TInput>.Ignored)).MustHaveHappened(Repeated.Exactly.Times(callsMade));
 		}
 
@@ -199,9 +212,8 @@ namespace EPS.Concurrency.Tests.Unit
 		public void CancelQueuedAndWaitForExecutingJobsToComplete_WaitsOnJobs()
 		{
 			var scheduler = new HistoricalScheduler();
-			var queue = monitoredJobQueueFactory(new HistoricalScheduler(), durableQueueFactory);
-
-			foreach (var input in fixture.CreateMany<TInput>(30))
+			var queue = _monitoredJobQueueFactory(new HistoricalScheduler(), _durableQueueFactory);
+			foreach (var input in _fixture.CreateMany<TInput>(30))
 				queue.AddJob(input);
 
 			scheduler.AdvanceBy(TimeSpan.FromSeconds(30));

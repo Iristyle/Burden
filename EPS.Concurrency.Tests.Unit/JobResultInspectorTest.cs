@@ -75,9 +75,9 @@ namespace EPS.Concurrency.Tests.Unit
 	}
 
 	public abstract class JobResultInspectorTest<TJobInput, TJobOutput>
-		: IJobResultInspectorTest<TJobInput, TJobOutput, Poison<TJobInput>>
+		: JobResultInspectorTestBase<TJobInput, TJobOutput, Poison<TJobInput>>
 	{
-		public JobResultInspectorTest(Func<TJobInput, TJobOutput> jobAction)
+		protected JobResultInspectorTest(Func<TJobInput, TJobOutput> jobAction)
 			: base(() => JobResultInspector.FromJobSpecification(jobAction))
 		{ }
 
@@ -88,18 +88,18 @@ namespace EPS.Concurrency.Tests.Unit
 		}
 	}
 
-	public class ValueTypeJobResultInspectorTest
+	public class JobResultInspectorValueTypeTest
 		: JobResultInspectorTest<int, int>
 	{
-		public ValueTypeJobResultInspectorTest()
+		public JobResultInspectorValueTypeTest()
 			: base(i => 3)
 		{ }
 	}
 
-	public class ReferenceTypeJobResultInspectorTest
+	public class JobResultInspectorReferenceTypeTest
 		: JobResultInspectorTest<object, string>
 	{
-		public ReferenceTypeJobResultInspectorTest()
+		public JobResultInspectorReferenceTypeTest()
 			: base(o => "foo") 
 		{ }
 	}

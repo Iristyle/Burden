@@ -9,11 +9,11 @@ namespace EPS.Concurrency.Tests.Unit
 		class Foo {}
 		class FooResult 
 		{ 
-			private readonly Foo foo = null;
-			public Foo Foo { get { return foo; }}
+			private readonly Foo _foo = null;
+			public Foo Foo { get { return _foo; }}
 			public FooResult(Foo foo)
 			{
-				this.foo = foo;
+				this._foo = foo;
 			}
 		}
 
@@ -40,17 +40,18 @@ namespace EPS.Concurrency.Tests.Unit
 		}
 
 		[Fact]
-		public void FromCallBackPattern_FiresAsyncCallback()
+		public void FromCallbackPattern_FiresAsyncCallback()
 		{
 			bool fired = false;
 			Action<Foo, Action<System.Reactive.Unit>> callback = (foo, action) => { fired = true; };
-			ObservableExtensions.FromCallbackPattern(new Foo(), callback).Subscribe();
-
-			Assert.True(fired);
+			using (var subscription = ObservableExtensions.FromCallbackPattern(new Foo(), callback).Subscribe())
+			{
+				Assert.True(fired);
+			}
 		}
 
 		[Fact]
-		public void FromCallBackPattern_ExposesResultOfActionOverObservable()
+		public void FromCallbackPattern_ExposesResultOfActionOverObservable()
 		{
 			Foo setFoo = new Foo();
 			Client client = new Client();
