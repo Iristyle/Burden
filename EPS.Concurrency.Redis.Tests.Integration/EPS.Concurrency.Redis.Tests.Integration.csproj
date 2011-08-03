@@ -18,13 +18,13 @@
     <Reference Include="ServiceStack">
       <HintPath>..\..\lib.services\ServiceStack-2.22\ServiceStack.dll</HintPath>
     </Reference>
-    <Reference Include="ServiceStack.Interfaces, Version=1.0.4189.30552, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="ServiceStack.Interfaces">
       <HintPath>..\..\lib.services\ServiceStack-2.22\ServiceStack.Interfaces.dll</HintPath>
     </Reference>
-    <Reference Include="ServiceStack.Redis, Version=2.2.0.8979, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="ServiceStack.Redis">
       <HintPath>..\..\lib.services\ServiceStack-2.22\ServiceStack.Redis.dll</HintPath>
     </Reference>
-    <Reference Include="ServiceStack.Text, Version=2.2.4.38332, Culture=neutral, processorArchitecture=MSIL">
+    <Reference Include="ServiceStack.Text">
       <HintPath>..\..\lib.services\ServiceStack-2.22\ServiceStack.Text.dll</HintPath>
     </Reference>
     <Reference Include="System" />
