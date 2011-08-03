@@ -599,7 +599,7 @@ namespace EPS.Concurrency.Tests.Unit
 				queue.StartNext();
 			}
 			
-			emptied.Wait(TimeSpan.FromSeconds(10));
+			emptied.Wait(TimeSpan.FromSeconds(5));
 
 			Assert.True(inputs.SequenceEqual(inputsExecuted, new GenericEqualityComparer<TJobInput>((a, b) => object.ReferenceEquals(a, b))));
 		}
@@ -645,11 +645,11 @@ namespace EPS.Concurrency.Tests.Unit
 
 					queue.StartUpTo(jobsPerBatch);
 
-					allCompletionsFired.Wait(TimeSpan.FromSeconds(10));
+					allCompletionsFired.Wait(TimeSpan.FromSeconds(5));
 				}
 			}
 
-			allEmptysFired.Wait(TimeSpan.FromSeconds(10));
+			allEmptysFired.Wait(TimeSpan.FromSeconds(5));
 			return notifications;
 		}
 
