@@ -43,12 +43,5 @@ namespace EPS.Concurrency.Tests.Unit
 			var result = GetErrorInspectionResults(new ArgumentNullException());
 			Assert.Equal(JobQueueActionType.Poison, result.ActionType);
 		}
-
-		[Fact]
-		public void Inspect_ReturnsPoisonQueueAction_ForErrorJobResult_WithNonNullJobResult_NullException()
-		{
-			var result = GetErrorInspectionResults(null);
-			Assert.Equal(JobQueueActionType.Poison, result.ActionType);
-		}
 	}
 }
