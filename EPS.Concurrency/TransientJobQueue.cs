@@ -47,18 +47,18 @@ namespace EPS.Concurrency
 
 		/// <summary>	Gets the next available queued item and transitions said item to the pending state. </summary>
 		/// <returns>	The item if an item was queued, otherwise null. </returns>
-		public TQueue TransitionNextQueuedItemToPending()
+		public IItem<TQueue> NextQueuedItem()
 		{
 			lock (queue)
 			{
 				if (queue.Count == 0)
-					return default(TQueue);
+					return Item.None<TQueue>();
 
 				var item = queue.ElementAt(0);
 				queue.RemoveAt(0);
 
 				pending.Add(item);
-				return item;
+				return Item.From(item);
 			}
 		}
 

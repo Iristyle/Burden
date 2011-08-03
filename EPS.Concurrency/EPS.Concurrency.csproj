@@ -26,6 +26,8 @@
     <Compile Include="DurableJobQueueActionType.cs" />
     <Compile Include="DurableQueueFactory.cs" />
     <Compile Include="ExceptionDetails.cs" />
+    <Compile Include="IItem.cs" />
+    <Compile Include="Item.cs" />
     <Compile Include="LocalScheduler.cs" />
     <Compile Include="DurableJobQueueMonitor.cs" />
     <Compile Include="AutoJobExecutionQueue.cs" />

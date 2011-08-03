@@ -99,7 +99,7 @@ namespace EPS.Concurrency.Tests.Unit
 			var observation = SubscribeForAction(actionType, (store, item, poison) =>
 			{
 				store.Queue(item);
-				store.TransitionNextQueuedItemToPending();
+				store.NextQueuedItem();
 			});
 
 			Assert.True(observation.Action.ActionType == actionType && GenericEqualityComparer<TQueue>.ByAllMembers().Equals(observation.Action.Input, observation.Input));
@@ -112,7 +112,7 @@ namespace EPS.Concurrency.Tests.Unit
 			var observation = SubscribeForAction(actionType, (store, item, poison) =>
 			{
 				store.Queue(item);
-				store.TransitionNextQueuedItemToPending();
+				store.NextQueuedItem();
 				store.Complete(item);
 			});
 
@@ -126,7 +126,7 @@ namespace EPS.Concurrency.Tests.Unit
 			var observation = SubscribeForAction(actionType, (store, item, poison) =>
 			{
 				store.Queue(item);
-				store.TransitionNextQueuedItemToPending();
+				store.NextQueuedItem();
 				store.Poison(item, poison);
 			});
 
@@ -142,7 +142,7 @@ namespace EPS.Concurrency.Tests.Unit
 			var observation = SubscribeForAction(actionType, (store, item, poison) =>
 			{
 				store.Queue(item);
-				store.TransitionNextQueuedItemToPending();
+				store.NextQueuedItem();
 				store.Poison(item, poison);
 				store.Delete(poison);
 			});

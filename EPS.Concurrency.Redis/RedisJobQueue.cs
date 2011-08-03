@@ -75,7 +75,7 @@ namespace EPS.Concurrency.Redis
 		/// <summary>	If there is an available item in the request queue, it will be move to the pending queue and returned. </summary>
 		/// <remarks>	7/19/2011. </remarks>
 		/// <returns>	An item if there was one available, otherwise null. </returns>
-		public TQueue TransitionNextQueuedItemToPending()
+		public IItem<TQueue> NextQueuedItem()
 		{
 			using (var client = redisClientsManager.GetClient()
 				.As<TQueue>())
@@ -83,8 +83,10 @@ namespace EPS.Concurrency.Redis
 				var requestQueue = client.Lists[String.Format("q:{0}", queueNames.Request)];
 				var pendingQueue = client.Lists[String.Format("q:{0}", queueNames.Pending)];
 
-				//moves an item out of 'request' and into 'pending' (which will be reverted at start up, should the process be terminated, etc)
-				return client.PopAndPushItemBetweenLists(requestQueue, pendingQueue);
+				//TODO: 8-3-2011 -- I believe there is a race condition here and we need to use a distributed lock somehow
+				return requestQueue.Count == 0 ? Item.None<TQueue>() : 
+					//moves an item out of 'request' and into 'pending' (which will be reverted at start up, should the process be terminated, etc)
+					Item.From(client.PopAndPushItemBetweenLists(requestQueue, pendingQueue));
 			}
 		}
 

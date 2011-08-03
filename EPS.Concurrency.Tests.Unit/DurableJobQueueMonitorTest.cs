@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Concurrency;
+using System.Threading;
 using EPS.Utility;
 using FakeItEasy;
 using Ploeh.AutoFixture;
@@ -137,12 +138,12 @@ DurableJobQueueMonitor.MinimumAllowedPollingInterval - TimeSpan.FromTicks(1), A.
 			var monitor = new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, 20, interval, scheduler);
 			monitor.Subscribe();
 
-			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).Returns(new Incoming() { Id = 1 });
+			A.CallTo(() => jobStorage.NextQueuedItem()).Returns(Item.From(new Incoming() { Id = 1 }));
 
 			//this is a little hacky, but give ourselves a 2 second timespan to make the call against our fake
 			scheduler.AdvanceBy(interval - TimeSpan.FromSeconds(2));
 			
-			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).MustNotHaveHappened();
+			A.CallTo(() => jobStorage.NextQueuedItem()).MustNotHaveHappened();
 		}
 
 		[Fact]
@@ -152,11 +153,11 @@ DurableJobQueueMonitor.MinimumAllowedPollingInterval - TimeSpan.FromTicks(1), A.
 			var scheduler = new HistoricalScheduler();
 			var monitor = new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, 20, DurableJobQueueMonitor.DefaultPollingInterval, scheduler);
 
-			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).Returns(new Incoming() { Id = 1 });
+			A.CallTo(() => jobStorage.NextQueuedItem()).Returns(Item.From(new Incoming() { Id = 1 }));
 
 			scheduler.AdvanceBy(monitor.PollingInterval.Add(monitor.PollingInterval));
 
-			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).MustNotHaveHappened();
+			A.CallTo(() => jobStorage.NextQueuedItem()).MustNotHaveHappened();
 		}
 
 		[Fact]
@@ -167,10 +168,10 @@ DurableJobQueueMonitor.MinimumAllowedPollingInterval - TimeSpan.FromTicks(1), A.
 			var monitor = new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, 20, DurableJobQueueMonitor.DefaultPollingInterval, scheduler);
 
 			//X items + a null terminator per each elapsed interval
-			var incomingItems = Enumerable.Repeat(new Incoming() { Id = 2 }, 5)
-				.Concat(new Incoming[] { null, null }).ToArray();
+			var incomingItems = Enumerable.Repeat(Item.From(new Incoming() { Id = 2 }), 5)
+				.Concat(new[] { Item.None<Incoming>(), Item.None<Incoming>() }).ToArray();
 
-			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).ReturnsNextFromSequence(incomingItems);
+			A.CallTo(() => jobStorage.NextQueuedItem()).ReturnsNextFromSequence(incomingItems);
 
 			//advance the amount of time that would normally cause our queue to be totally flushed
 			scheduler.AdvanceBy(monitor.PollingInterval.Add(monitor.PollingInterval));
@@ -181,27 +182,27 @@ DurableJobQueueMonitor.MinimumAllowedPollingInterval - TimeSpan.FromTicks(1), A.
 			scheduler.AdvanceBy(monitor.PollingInterval);
 
 			//our transition method should have been called X times based on the list of valid items + 1 time for the null on the first scheduled execution, then an additional time w/ null for the next scheduled execution
-			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).MustHaveHappened(Repeated.Exactly.Times(incomingItems.Length));
+			A.CallTo(() => jobStorage.NextQueuedItem()).MustHaveHappened(Repeated.Exactly.Times(incomingItems.Length));
 		}
 
 		[Fact]
-		public void Subscribe_CallsTransitionNextQueuedItemToPendingWhileNonNull()
+		public void Subscribe_CallsNextQueuedItemWhileNonNull()
 		{
 			var jobStorage = A.Fake<IDurableJobQueue<Incoming, Incoming>>();
 			var scheduler = new HistoricalScheduler();
 			var monitor = new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, 20, DurableJobQueueMonitor.DefaultPollingInterval, scheduler);
 
-			var queuedItems = Enumerable.Repeat(new Incoming() { Id = 1 }, 5)
-				.Concat(Enumerable.Repeat(new Incoming() { Id = 2 }, 5))
-				.Concat(new Incoming[] { null }).ToArray();
+			var queuedItems = Enumerable.Repeat(Item.From(new Incoming() { Id = 1 }), 5)
+				.Concat(Enumerable.Repeat(Item.From(new Incoming() { Id = 2 }), 5))
+				.Concat(new [] { Item.None<Incoming>() }).ToArray();
 
 			monitor.Subscribe();
 
-			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).ReturnsNextFromSequence(queuedItems);
+			A.CallTo(() => jobStorage.NextQueuedItem()).ReturnsNextFromSequence(queuedItems);
 
 			scheduler.AdvanceBy(monitor.PollingInterval);
 
-			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).MustHaveHappened(Repeated.Exactly.Times(queuedItems.Length));
+			A.CallTo(() => jobStorage.NextQueuedItem()).MustHaveHappened(Repeated.Exactly.Times(queuedItems.Length));
 		}
 
 		[Fact]
@@ -211,19 +212,19 @@ DurableJobQueueMonitor.MinimumAllowedPollingInterval - TimeSpan.FromTicks(1), A.
 			var scheduler = new HistoricalScheduler();
 			var monitor = new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, 20, DurableJobQueueMonitor.DefaultPollingInterval, scheduler);
 
-			var queuedItems = Enumerable.Repeat(new Incoming() { Id = 1 }, 5)
-				.Concat(new Incoming[] { null })
-				.Concat(Enumerable.Repeat(new Incoming() { Id = 2 }, 5))
-				.Concat(new Incoming[] { null }).ToArray();
+			var queuedItems = Enumerable.Repeat(Item.From(new Incoming() { Id = 1 }), 5)
+				.Concat(new [] { Item.None<Incoming>() })
+				.Concat(Enumerable.Repeat(Item.From(new Incoming() { Id = 2 }), 5))
+				.Concat(new [] { Item.None<Incoming>() }).ToArray();
 
 			monitor.Subscribe();
 
-			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).ReturnsNextFromSequence(queuedItems);
+			A.CallTo(() => jobStorage.NextQueuedItem()).ReturnsNextFromSequence(queuedItems);
 
 			scheduler.AdvanceBy(monitor.PollingInterval);
 			scheduler.AdvanceBy(monitor.PollingInterval);
 
-			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).MustHaveHappened(Repeated.Exactly.Times(queuedItems.Length));
+			A.CallTo(() => jobStorage.NextQueuedItem()).MustHaveHappened(Repeated.Exactly.Times(queuedItems.Length));
 		}
 
 		[Fact]
@@ -235,17 +236,17 @@ DurableJobQueueMonitor.MinimumAllowedPollingInterval - TimeSpan.FromTicks(1), A.
 
 			List<Incoming> incomingItems = new List<Incoming>();
 
-			var queuedItems = Enumerable.Repeat(new Incoming() { Id = 1 }, 5)
-				.Concat(Enumerable.Repeat(new Incoming() { Id = 5 }, 2))
-				.Concat(Enumerable.Repeat(new Incoming() { Id = 2 }, 4))
-				.Concat(Enumerable.Repeat(new Incoming() { Id = 3 }, 3))
+			var queuedItems = Enumerable.Repeat(Item.From(new Incoming() { Id = 1 }), 5)
+				.Concat(Enumerable.Repeat(Item.From(new Incoming() { Id = 5 }), 2))
+				.Concat(Enumerable.Repeat(Item.From(new Incoming() { Id = 2 }), 4))
+				.Concat(Enumerable.Repeat(Item.From(new Incoming() { Id = 3 }), 3))
 				.ToArray();
 
-			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).ReturnsNextFromSequence(queuedItems.Concat(new Incoming[] { null }).ToArray());
+			A.CallTo(() => jobStorage.NextQueuedItem()).ReturnsNextFromSequence(queuedItems.Concat(new [] { Item.None<Incoming>() }).ToArray());
 			monitor.Subscribe(publishedItem => { incomingItems.Add(publishedItem); });
 			scheduler.AdvanceBy(monitor.PollingInterval);
 
-			Assert.True(queuedItems.SequenceEqual(incomingItems, GenericEqualityComparer<Incoming>.ByAllMembers()));
+			Assert.True(queuedItems.Select(item => item.Value).SequenceEqual(incomingItems, GenericEqualityComparer<Incoming>.ByAllMembers()));
 		}
 
 		[Fact]
@@ -257,22 +258,24 @@ DurableJobQueueMonitor.MinimumAllowedPollingInterval - TimeSpan.FromTicks(1), A.
 
 			List<Incoming> incomingItems = new List<Incoming>();
 
-			var queuedItems = Enumerable.Repeat(new Incoming() { Id = 1 }, 5)
-				.Concat(new Incoming[] { null })
-				.Concat(Enumerable.Repeat(new Incoming() { Id = 2 }, 5))
-				.Concat(new Incoming[] { null })
-				.Concat(Enumerable.Repeat(new Incoming() { Id = 1 }, 2))
-				.Concat(new Incoming[] { null }).ToArray();
+			var queuedItems = Enumerable.Repeat(Item.From(new Incoming() { Id = 1 }), 5)
+				.Concat(new [] { Item.None<Incoming>() })
+				.Concat(Enumerable.Repeat(Item.From(new Incoming() { Id = 2 }), 5))
+				.Concat(new [] { Item.None<Incoming>() })
+				.Concat(Enumerable.Repeat(Item.From(new Incoming() { Id = 1 }), 2))
+				.Concat(new [] { Item.None<Incoming>() }).ToArray();
 
 			monitor.Subscribe(publishedItem => { incomingItems.Add(publishedItem); });
 
-			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).ReturnsNextFromSequence(queuedItems);
+			A.CallTo(() => jobStorage.NextQueuedItem()).ReturnsNextFromSequence(queuedItems);
 
 			scheduler.AdvanceBy(monitor.PollingInterval);
 			scheduler.AdvanceBy(monitor.PollingInterval);
 			scheduler.AdvanceBy(monitor.PollingInterval);
 
-			Assert.True(queuedItems.Where(item => null != item).SequenceEqual(incomingItems, GenericEqualityComparer<Incoming>.ByAllMembers()));
+			Assert.True(queuedItems.Where(item => item.Success)
+				.Select(item => item.Value)
+				.SequenceEqual(incomingItems, GenericEqualityComparer<Incoming>.ByAllMembers()));
 		}
 
 		[Fact]
@@ -280,14 +283,24 @@ DurableJobQueueMonitor.MinimumAllowedPollingInterval - TimeSpan.FromTicks(1), A.
 		{
 			int maxToSlurp = 3;
 			var jobStorage = A.Fake<IDurableJobQueue<Incoming, Incoming>>();
+			A.CallTo(() => jobStorage.NextQueuedItem()).Returns(Item.From(new Incoming() { Id = 1 }));
 			var scheduler = new HistoricalScheduler();
 			var monitor = new DurableJobQueueMonitor<Incoming, Incoming>(jobStorage, maxToSlurp, DurableJobQueueMonitor.DefaultPollingInterval, 
 scheduler);
+			var completion = new ManualResetEventSlim(false);
 
 			List<Incoming> incomingItems = new List<Incoming>();
 
-			monitor.Subscribe(publishedItem => { incomingItems.Add(publishedItem); });
-			scheduler.AdvanceBy(monitor.PollingInterval);
+			monitor.Subscribe(publishedItem => 
+			{ 
+				incomingItems.Add(publishedItem); 
+				if (incomingItems.Count >= maxToSlurp)
+				{
+					completion.Set();
+				}
+			});
+			scheduler.AdvanceBy(monitor.PollingInterval + TimeSpan.FromTicks(1));
+			completion.Wait(TimeSpan.FromSeconds(3));
 
 			Assert.Equal(maxToSlurp, incomingItems.Count);
 		}
@@ -303,20 +316,27 @@ scheduler);
 
 			List<Incoming> incomingItems = new List<Incoming>();
 
-			var queuedItems = Enumerable.Repeat(new Incoming() { Id = 1 }, 3)
-				.Concat(new Incoming[] { new Incoming() { Id = 456 }, new Incoming() { Id = 222 }, new Incoming() { Id = 8714 } })
-				.Concat(Enumerable.Repeat(new Incoming() { Id = 5 }, 2))
-				.Concat(Enumerable.Repeat(new Incoming() { Id = 2 }, 4))
-				.Concat(Enumerable.Repeat(new Incoming() { Id = 3 }, 3))
+			var queuedItems = Enumerable.Repeat(Item.From(new Incoming() { Id = 1 }), 3)
+				.Concat(new [] 
+				{ 
+					Item.From(new Incoming() { Id = 456 }), 
+					Item.From(new Incoming() { Id = 222 }), 
+					Item.From(new Incoming() { Id = 8714 }) 
+				})
+				.Concat(Enumerable.Repeat(Item.From(new Incoming() { Id = 5 }), 2))
+				.Concat(Enumerable.Repeat(Item.From(new Incoming() { Id = 2 }), 4))
+				.Concat(Enumerable.Repeat(Item.From(new Incoming() { Id = 3 }), 3))
 				.ToArray();
 
-			A.CallTo(() => jobStorage.TransitionNextQueuedItemToPending()).ReturnsNextFromSequence(queuedItems);
+			A.CallTo(() => jobStorage.NextQueuedItem()).ReturnsNextFromSequence(queuedItems);
 
 			monitor.Subscribe(publishedItem => { incomingItems.Add(publishedItem); });
 			scheduler.AdvanceBy(monitor.PollingInterval);
 			scheduler.AdvanceBy(monitor.PollingInterval);
 
-			Assert.True(queuedItems.Take(maxToSlurp * 2).SequenceEqual(incomingItems, GenericEqualityComparer<Incoming>.ByAllMembers()));
+			Assert.True(queuedItems.Take(maxToSlurp * 2)
+				.Select(item => item.Value)
+				.SequenceEqual(incomingItems, GenericEqualityComparer<Incoming>.ByAllMembers()));
 		}
 	}
 }

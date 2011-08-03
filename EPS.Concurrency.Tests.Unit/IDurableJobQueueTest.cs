@@ -49,20 +49,10 @@ namespace EPS.Concurrency.Tests.Unit
 			List<TQueue> items = new List<TQueue>();
 			while (true)
 			{
-				TQueue item = jobStorage.TransitionNextQueuedItemToPending();
+				var item = jobStorage.NextQueuedItem();
+				if (!item.Success) break;
 
-				if (typeof(TQueue).IsValueType)
-				{
-					if (default(TQueue).Equals(item))
-						break;
-				}
-				else
-				{
-					if (object.Equals(null, item))
-						break;
-				}
-
-				items.Add(item);
+				items.Add(item.Value);
 			}
 
 			return items;
@@ -106,7 +96,7 @@ namespace EPS.Concurrency.Tests.Unit
 		}
 
 		[Fact]
-		public void TransitionNextQueuedItemToPending_PreservesOrderingInPendingList()
+		public void NextQueuedItem_PreservesOrderingInPendingList()
 		{
 			var storage = jobStorageFactory();
 
@@ -114,14 +104,14 @@ namespace EPS.Concurrency.Tests.Unit
 			foreach (var item in items)
 			{
 				storage.Queue(item);
-				storage.TransitionNextQueuedItemToPending();
+				storage.NextQueuedItem();
 			}
 
 			Assert.True(items.SequenceEqual(storage.GetPending(), GenericEqualityComparer<TQueue>.ByAllMembers()));
 		}
 
 		[Fact]
-		public void TransitionNextQueuedItemToPending_ProperlyRemovesItemFromQueuedList()
+		public void NextQueuedItem_ProperlyRemovesItemFromQueuedList()
 		{
 			var storage = jobStorageFactory();
 
@@ -129,14 +119,14 @@ namespace EPS.Concurrency.Tests.Unit
 			foreach (var item in items)
 			{
 				storage.Queue(item);
-				storage.TransitionNextQueuedItemToPending();
+				storage.NextQueuedItem();
 			}
 
 			Assert.Empty(storage.GetQueued());
 		}
 
 		[Fact]
-		public void TransitionNextQueuedItemToPending_DoesNotModifyPoisonedList()
+		public void NextQueuedItem_DoesNotModifyPoisonedList()
 		{
 			var storage = jobStorageFactory();
 
@@ -144,17 +134,17 @@ namespace EPS.Concurrency.Tests.Unit
 			foreach (var item in items)
 			{
 				storage.Queue(item);
-				storage.TransitionNextQueuedItemToPending();
+				storage.NextQueuedItem();
 			}
 
 			Assert.Empty(storage.GetPoisoned());
 		}
 
 		[Fact]
-		public void TransitionNextQueuedItemToPending_ReturnsDefaultOnEmptyQueueList()
+		public void NextQueuedItem_ReturnsDefaultOnEmptyQueueList()
 		{
 			var storage = jobStorageFactory();
-			Assert.Equal(default(TQueue), storage.TransitionNextQueuedItemToPending());
+			Assert.Equal(Item.None<TQueue>(), storage.NextQueuedItem());
 		}
 
 		[Fact]
@@ -231,7 +221,7 @@ namespace EPS.Concurrency.Tests.Unit
 
 			var item = fixture.CreateAnonymous<TQueue>();
 			storage.Queue(item);
-			storage.TransitionNextQueuedItemToPending();
+			storage.NextQueuedItem();
 
 			Assert.True(storage.Poison(item, poisonConverter(item)));
 		}
@@ -243,7 +233,7 @@ namespace EPS.Concurrency.Tests.Unit
 
 			var item = fixture.CreateAnonymous<TQueue>();
 			storage.Queue(item);
-			storage.TransitionNextQueuedItemToPending();
+			storage.NextQueuedItem();
 			var poison = poisonConverter(item);
 			storage.Poison(item, poison);
 
@@ -278,7 +268,7 @@ namespace EPS.Concurrency.Tests.Unit
 
 			var item = fixture.CreateAnonymous<TQueue>();
 			storage.Queue(item);
-			storage.TransitionNextQueuedItemToPending();
+			storage.NextQueuedItem();
 			var poison = poisonConverter(item);
 
 			Assert.False(storage.Delete(poison));
@@ -289,7 +279,7 @@ namespace EPS.Concurrency.Tests.Unit
 			var storage = jobStorageFactory();
 			var item = fixture.CreateAnonymous<TQueue>();
 			storage.Queue(item);
-			storage.TransitionNextQueuedItemToPending();
+			storage.NextQueuedItem();
 			poison = poisonConverter(item);
 			storage.Poison(item, poison);
 
@@ -322,7 +312,7 @@ namespace EPS.Concurrency.Tests.Unit
 			var storage = GetStorageWithPoisonedItem(out poison);
 			storage.Queue(fixture.CreateAnonymous<TQueue>());
 			storage.Queue(fixture.CreateAnonymous<TQueue>());
-			storage.TransitionNextQueuedItemToPending();
+			storage.NextQueuedItem();
 			storage.Delete(poison);
 
 			Assert.Single(storage.GetQueued());
@@ -335,7 +325,7 @@ namespace EPS.Concurrency.Tests.Unit
 			var storage = GetStorageWithPoisonedItem(out poison);
 			storage.Queue(fixture.CreateAnonymous<TQueue>());
 			storage.Queue(fixture.CreateAnonymous<TQueue>());
-			storage.TransitionNextQueuedItemToPending();
+			storage.NextQueuedItem();
 			storage.Delete(poison);
 
 			Assert.Single(storage.GetPending());
@@ -368,7 +358,7 @@ namespace EPS.Concurrency.Tests.Unit
 
 			var item = fixture.CreateAnonymous<TQueue>();
 			storage.Queue(item);
-			storage.TransitionNextQueuedItemToPending();
+			storage.NextQueuedItem();
 
 			Assert.True(storage.Complete(item));
 		}
@@ -410,7 +400,7 @@ namespace EPS.Concurrency.Tests.Unit
 			foreach (var item in queueItems)
 			{
 				storage.Queue(item);
-				storage.TransitionNextQueuedItemToPending();
+				storage.NextQueuedItem();
 			}
 
 			Assert.True(queueItems.SequenceEqual(storage.GetPending(), GenericEqualityComparer<TQueue>.ByAllMembers()));
@@ -434,7 +424,7 @@ namespace EPS.Concurrency.Tests.Unit
 			foreach (var item in fixture.CreateMany<TQueue>(15))
 			{
 				storage.Queue(item);
-				storage.TransitionNextQueuedItemToPending();
+				storage.NextQueuedItem();
 				var poisoned = poisonConverter(item);
 				poisonedItems.Add(poisoned);
 				storage.Poison(item, poisoned);

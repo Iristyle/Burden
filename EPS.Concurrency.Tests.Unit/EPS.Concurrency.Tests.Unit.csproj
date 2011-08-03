@@ -37,6 +37,7 @@
     <Compile Include="IJobExecutionQueueTest.cs" />
     <Compile Include="IJobResultInspectorTest.cs" />
     <Compile Include="IMonitoredJobQueueTest.cs" />
+    <Compile Include="ItemTest.cs" />
     <Compile Include="JobQueueActionTest.cs" />
     <Compile Include="JobResultInspectorTest.cs" />
     <Compile Include="JobResultTest.cs" />

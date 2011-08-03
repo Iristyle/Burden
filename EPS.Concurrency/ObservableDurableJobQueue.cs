@@ -48,13 +48,12 @@ namespace EPS.Concurrency
 		/// <summary>	Gets the next available queued item and transitions said item to the pending state. </summary>
 		/// <remarks>	Delegates to the underlying job queue. Fires a notification on OnQueueAction if the operation returned an item. </remarks>
 		/// <returns>	The item if an item was queued, otherwise null. </returns>
-		public TQueue TransitionNextQueuedItemToPending()
+		public IItem<TQueue> NextQueuedItem()
 		{
-			//TODO: 7-27-2011 -- this call should perhaps be changed to include item and success status instead of just item, since this doesn't make sense easily for value types
-			var item = durableJobQueue.TransitionNextQueuedItemToPending();
-			if (null != item)
+			var item = durableJobQueue.NextQueuedItem();
+			if (item.Success)
 			{
-				onQueueAction.OnNext(DurableJobQueueAction.Pending(item));
+				onQueueAction.OnNext(DurableJobQueueAction.Pending(item.Value));
 			}
 			return item;
 		}

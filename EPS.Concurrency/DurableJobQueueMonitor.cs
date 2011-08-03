@@ -86,17 +86,18 @@ namespace EPS.Concurrency
 			syncRequestPublisher = Observable.Interval(pollingInterval, scheduler)
 			.SelectMany(interval =>
 			ReadQueuedItems()
-			.TakeWhile(request => null != request)
+			.TakeWhile(request => request.Success)
 			.Take(maxQueueItemsToPublishPerInterval))
+			.Select(item => item.Value)
 			.Publish()
 			.RefCount();
 		}
 
-		private IEnumerable<TQueue> ReadQueuedItems()
+		private IEnumerable<IItem<TQueue>> ReadQueuedItems()
 		{
 			while (true)
 			{
-				yield return durableJobQueue.TransitionNextQueuedItemToPending();
+				yield return durableJobQueue.NextQueuedItem();
 			}
 		}
 

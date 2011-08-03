@@ -15,7 +15,7 @@ namespace EPS.Concurrency
 
 		/// <summary>	Gets the next available queued item and transitions said item to the pending state. </summary>
 		/// <returns>	The item if an item was queued, otherwise null. </returns>
-		TQueue TransitionNextQueuedItemToPending();
+		IItem<TQueue> NextQueuedItem();
 				
 		/// <summary>	Resets all pending items to the queued state. </summary>
 		void ResetAllPendingToQueued();
