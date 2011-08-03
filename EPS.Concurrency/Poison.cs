@@ -11,7 +11,7 @@ namespace EPS.Concurrency
 		/// <value>	The input. </value>
 		public T Input { get; private set; }
 		
-		/// <summary>	Gets theexception details. </summary>
+		/// <summary>	Gets the exception details. </summary>
 		/// <value>	The exception. </value>
 		public ExceptionDetails Exception { get; private set; }
 		
