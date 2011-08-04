@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Threading;
@@ -24,8 +25,9 @@ namespace EPS.Concurrency
 
 		//creation calls should go through the static factory 
 		internal MonitoredJobQueue(ObservableDurableJobQueue<TInput, TPoison> durableQueue, Func<TInput, TOutput> jobAction,
-			int maxConcurrentJobsToExecute, IJobResultInspector<TInput, TOutput, TPoison> resultsInspector,
-			int maxQueueItemsToPublishPerInterval, TimeSpan pollingInterval, IScheduler scheduler)
+		int maxConcurrentJobsToExecute, IJobResultInspector<TInput, TOutput, TPoison> resultsInspector,
+		int maxQueueItemsToPublishPerInterval, TimeSpan pollingInterval, 
+		Func<IObservable<TInput>, IObservable<TInput>> notificationFilter, IScheduler scheduler)
 		{
 			//perform null checks only, knowing that additional checks are performed by the new() calls below and will bubble up
 			if (null == durableQueue)
@@ -46,12 +48,14 @@ namespace EPS.Concurrency
 			}
 			this._durableQueue = durableQueue;
 			this._monitor = new DurableJobQueueMonitor<TInput, TPoison>(durableQueue, maxQueueItemsToPublishPerInterval,
-			pollingInterval, scheduler);
-			this._jobQueue = new AutoJobExecutionQueue<TInput, TOutput>(scheduler, maxConcurrentJobsToExecute, maxConcurrentJobsToExecute);
-			this._resultJournaler = new JobResultJournalWriter<TInput, TOutput, TPoison>(_jobQueue.WhenJobCompletes, resultsInspector,
-			durableQueue, null, scheduler);
-
-			this._subscription = _monitor
+				pollingInterval, scheduler);
+			this._jobQueue = new AutoJobExecutionQueue<TInput, TOutput>(scheduler, maxConcurrentJobsToExecute,
+				maxConcurrentJobsToExecute);
+			this._resultJournaler = new JobResultJournalWriter<TInput, TOutput, TPoison>(_jobQueue.WhenJobCompletes,
+				resultsInspector, durableQueue, null, scheduler);
+			
+			//apply a user-specified filter i
+			this._subscription = (null == notificationFilter ? _monitor : notificationFilter(_monitor))
 			.SubscribeOn(scheduler)
 			.Subscribe(input => _jobQueue.Add(input, jobAction));
 		}
@@ -205,9 +209,37 @@ namespace EPS.Concurrency
 		public static IMonitoredJobQueue<TInput, TOutput, Poison<TInput>> Create<TInput, TOutput>(IDurableJobQueueFactory durableQueueFactory,
 			Func<TInput, TOutput> jobAction, int maxConcurrentJobsToExecute)
 		{
-			return new MonitoredJobQueue<TInput, TOutput, Poison<TInput>>(CreateQueue<TInput, Poison<TInput>>(durableQueueFactory), jobAction,
-			maxConcurrentJobsToExecute, JobResultInspector.FromJobSpecification(jobAction), GetEstimatedJobsToExecutePerInterval(DurableJobQueueMonitor.DefaultPollingInterval, maxConcurrentJobsToExecute),
-			DurableJobQueueMonitor.DefaultPollingInterval, LocalScheduler.Default);
+			return new MonitoredJobQueue<TInput, TOutput, Poison<TInput>>(CreateQueue<TInput, Poison<TInput>>(durableQueueFactory), jobAction, maxConcurrentJobsToExecute, 
+				JobResultInspector.FromJobSpecification(jobAction), GetEstimatedJobsToExecutePerInterval(DurableJobQueueMonitor.DefaultPollingInterval, maxConcurrentJobsToExecute), 
+				DurableJobQueueMonitor.DefaultPollingInterval, null, LocalScheduler.Default);
+		}
+
+		/// <summary>
+		/// Creates a simplified IMonitoredJobQueue interface given a durable queue factory, job action and maximum items to queue per interval.
+		/// Poison is defaulted to Poison{TInput}.  JobResultInspector is defaulted based on the job specification.
+		/// DurableJobQueueMonitor.DefaultPollingInterval is used as a polling interval.
+		/// </summary>
+		/// <remarks>	7/27/2011. </remarks>
+		/// <typeparam name="TInput"> 	Type of the input. </typeparam>
+		/// <typeparam name="TOutput">	Type of the output. </typeparam>
+		/// <param name="durableQueueFactory">		 	A durable queue factory. </param>
+		/// <param name="jobAction">				 	The job action. </param>
+		/// <param name="maxConcurrentJobsToExecute">	The maximum queue items to execute (which manipulates the maximum queue items published
+		/// 											per interval based on an assumed 1/2 sec per job). </param>
+		/// <param name="">							 	The. </param>
+		/// <param name="notificationFilter">		 	Provides a way to filter job requests after they're pulled from the durable queue, and
+		/// 											just before they are to enter the execution queue (for instance, for duplicates).  Null values are ignored. </param>
+		/// <returns>	An IMonitoredJobQueue instance that simplifies queuing inputs. </returns>
+		/// <exception cref="ArgumentNullException">	  	Thrown when the factory or action are null. </exception>
+		/// <exception cref="ArgumentOutOfRangeException">	Thrown when the maximum queue items to publish per interval is too high or low. </exception>
+		[SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "Disposables are now responsibility of MonitoredJobQueue")]
+		[SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures", Justification = "Nested generics, while advanced, are perfectly acceptable within Funcs and we get to use compiler inference here")]
+		public static IMonitoredJobQueue<TInput, TOutput, Poison<TInput>> Create<TInput, TOutput>(IDurableJobQueueFactory durableQueueFactory,
+			Func<TInput, TOutput> jobAction, int maxConcurrentJobsToExecute, Func<IObservable<TInput>, IObservable<TInput>> notificationFilter)
+		{
+			return new MonitoredJobQueue<TInput, TOutput, Poison<TInput>>(CreateQueue<TInput, Poison<TInput>>(durableQueueFactory), jobAction, maxConcurrentJobsToExecute,
+				JobResultInspector.FromJobSpecification(jobAction), GetEstimatedJobsToExecutePerInterval(DurableJobQueueMonitor.DefaultPollingInterval, maxConcurrentJobsToExecute),
+				DurableJobQueueMonitor.DefaultPollingInterval, notificationFilter, LocalScheduler.Default);
 		}
 
 		/// <summary>
@@ -231,9 +263,9 @@ namespace EPS.Concurrency
 		public static IMonitoredJobQueue<TInput, TOutput, TPoison> Create<TInput, TOutput, TPoison>(IDurableJobQueueFactory durableQueueFactory,
 			Func<TInput, TOutput> jobAction, int maxConcurrentJobsToExecute, IJobResultInspector<TInput, TOutput, TPoison> resultsInspector)
 		{
-			return new MonitoredJobQueue<TInput, TOutput, TPoison>(CreateQueue<TInput, TPoison>(durableQueueFactory), jobAction,
-			maxConcurrentJobsToExecute, resultsInspector, GetEstimatedJobsToExecutePerInterval(DurableJobQueueMonitor.DefaultPollingInterval, maxConcurrentJobsToExecute), 
-			DurableJobQueueMonitor.DefaultPollingInterval, LocalScheduler.Default);
+			return new MonitoredJobQueue<TInput, TOutput, TPoison>(CreateQueue<TInput, TPoison>(durableQueueFactory), jobAction, maxConcurrentJobsToExecute, resultsInspector, 
+				GetEstimatedJobsToExecutePerInterval(DurableJobQueueMonitor.DefaultPollingInterval, maxConcurrentJobsToExecute), DurableJobQueueMonitor.DefaultPollingInterval, 
+				null, LocalScheduler.Default);
 		}
 
 		/// <summary>	Creates a simplified IMonitoredJobQueue interface given a durable queue factory and a job queue. </summary>
@@ -254,9 +286,9 @@ namespace EPS.Concurrency
 		public static IMonitoredJobQueue<TInput, TOutput, TPoison> Create<TInput, TOutput, TPoison>(IDurableJobQueueFactory durableQueueFactory,
 			Func<TInput, TOutput> jobAction, int maxConcurrentJobsToExecute, Func<JobResult<TInput, TOutput>, JobQueueAction<TPoison>> resultsInspector)
 		{
-			return new MonitoredJobQueue<TInput, TOutput, TPoison>(CreateQueue<TInput, TPoison>(durableQueueFactory), jobAction,
-			maxConcurrentJobsToExecute, JobResultInspector.FromInspector(resultsInspector), GetEstimatedJobsToExecutePerInterval(DurableJobQueueMonitor.DefaultPollingInterval, maxConcurrentJobsToExecute),
-			DurableJobQueueMonitor.DefaultPollingInterval, LocalScheduler.Default);
+			return new MonitoredJobQueue<TInput, TOutput, TPoison>(CreateQueue<TInput, TPoison>(durableQueueFactory), jobAction, maxConcurrentJobsToExecute, 
+				JobResultInspector.FromInspector(resultsInspector), GetEstimatedJobsToExecutePerInterval(DurableJobQueueMonitor.DefaultPollingInterval, maxConcurrentJobsToExecute), 
+				DurableJobQueueMonitor.DefaultPollingInterval, null, LocalScheduler.Default);
 		}
 
 		/// <summary>
@@ -280,9 +312,9 @@ namespace EPS.Concurrency
 		public static IMonitoredJobQueue<TInput, TOutput, Poison<TInput>> Create<TInput, TOutput>(IDurableJobQueueFactory durableQueueFactory,
 			Func<TInput, TOutput> jobAction, int maxConcurrentJobsToExecute, TimeSpan pollingInterval)
 		{
-			return new MonitoredJobQueue<TInput, TOutput, Poison<TInput>>(CreateQueue<TInput, Poison<TInput>>(durableQueueFactory), jobAction,
-			maxConcurrentJobsToExecute, JobResultInspector.FromJobSpecification(jobAction), GetEstimatedJobsToExecutePerInterval(pollingInterval, maxConcurrentJobsToExecute), 
-			pollingInterval, LocalScheduler.Default);
+			return new MonitoredJobQueue<TInput, TOutput, Poison<TInput>>(CreateQueue<TInput, Poison<TInput>>(durableQueueFactory), jobAction, maxConcurrentJobsToExecute, 
+				JobResultInspector.FromJobSpecification(jobAction), GetEstimatedJobsToExecutePerInterval(pollingInterval, maxConcurrentJobsToExecute), pollingInterval, null, 
+				LocalScheduler.Default);
 		}
 
 		/// <summary>
@@ -309,8 +341,38 @@ namespace EPS.Concurrency
 			Func<TInput, TOutput> jobAction, int maxConcurrentJobsToExecute, IJobResultInspector<TInput, TOutput, TPoison> resultsInspector,
 			TimeSpan pollingInterval)
 		{
-			return new MonitoredJobQueue<TInput, TOutput, TPoison>(CreateQueue<TInput, TPoison>(durableQueueFactory), jobAction, maxConcurrentJobsToExecute,
-			resultsInspector, GetEstimatedJobsToExecutePerInterval(pollingInterval, maxConcurrentJobsToExecute), pollingInterval, LocalScheduler.Default);
+			return new MonitoredJobQueue<TInput, TOutput, TPoison>(CreateQueue<TInput, TPoison>(durableQueueFactory), jobAction, maxConcurrentJobsToExecute, resultsInspector, 
+				GetEstimatedJobsToExecutePerInterval(pollingInterval, maxConcurrentJobsToExecute), pollingInterval, null, LocalScheduler.Default);
+		}
+
+		/// <summary>
+		/// Creates a simplified IMonitoredJobQueue interface given a durable queue factory, a job action, a results inspector and maximum items
+		/// to queue per interval. DurableJobQueueMonitor.
+		/// </summary>
+		/// <remarks>	7/24/2011. </remarks>
+		/// <typeparam name="TInput"> 	Type of the input. </typeparam>
+		/// <typeparam name="TOutput">	Type of the output. </typeparam>
+		/// <typeparam name="TPoison">	Type of the poison. </typeparam>
+		/// <param name="durableQueueFactory">					A durable queue factory. </param>
+		/// <param name="jobAction">							The job action. </param>
+		/// <param name="resultsInspector">						The results inspector. </param>
+		/// <param name="maxConcurrentJobsToExecute">	The maximum queue items to execute (which manipulates the maximum queue items published
+		/// 											per interval based on an assumed 1/2 sec per job). </param>
+		/// <param name="notificationFilter">		 	Provides a way to filter job requests after they're pulled from the durable queue, and
+		/// 											just before they are to enter the execution queue (for instance, for duplicates).  Null values are ignored. </param>
+		/// <param name="pollingInterval">						The polling interval. </param>
+		/// <returns>	An IMonitoredJobQueue instance that simplifies queuing inputs. </returns>
+		/// <exception cref="ArgumentNullException">	  	Thrown when the factory, job queue or results inspectors are null. </exception>
+		/// <exception cref="ArgumentOutOfRangeException">	Thrown when the maximum queue items to publish per interval is too high or low,
+		/// 													or the polling interval is too fast or slow. </exception>
+		[SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "Disposables are now responsibility of MonitoredJobQueue")]
+		[SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures", Justification = "Nested generics, while advanced, are perfectly acceptable within Funcs and we get to use compiler inference here")]
+		public static IMonitoredJobQueue<TInput, TOutput, TPoison> Create<TInput, TOutput, TPoison>(IDurableJobQueueFactory durableQueueFactory,
+			Func<TInput, TOutput> jobAction, int maxConcurrentJobsToExecute, IJobResultInspector<TInput, TOutput, TPoison> resultsInspector,
+			Func<IObservable<TInput>, IObservable<TInput>> notificationFilter, TimeSpan pollingInterval)
+		{
+			return new MonitoredJobQueue<TInput, TOutput, TPoison>(CreateQueue<TInput, TPoison>(durableQueueFactory), jobAction, maxConcurrentJobsToExecute, resultsInspector,
+				GetEstimatedJobsToExecutePerInterval(pollingInterval, maxConcurrentJobsToExecute), pollingInterval, notificationFilter, LocalScheduler.Default);
 		}
 
 		/// <summary>	Creates a simplified IMonitoredJobQueue interface given a durable queue factory and a job queue. </summary>
@@ -334,9 +396,37 @@ namespace EPS.Concurrency
 			Func<TInput, TOutput> jobAction, int maxConcurrentJobsToExecute, Func<JobResult<TInput, TOutput>, JobQueueAction<TPoison>> resultsInspector, 
 			TimeSpan pollingInterval)
 		{
+			return new MonitoredJobQueue<TInput, TOutput, TPoison>(CreateQueue<TInput, TPoison>(durableQueueFactory), jobAction, maxConcurrentJobsToExecute, 
+				JobResultInspector.FromInspector(resultsInspector), GetEstimatedJobsToExecutePerInterval(pollingInterval, maxConcurrentJobsToExecute), pollingInterval, null, 
+				LocalScheduler.Default);
+		}
+
+		/// <summary>	Creates a simplified IMonitoredJobQueue interface given a durable queue factory and a job queue. </summary>
+		/// <remarks>	7/24/2011. </remarks>
+		/// <typeparam name="TInput"> 	Type of the input. </typeparam>
+		/// <typeparam name="TOutput">	Type of the output. </typeparam>
+		/// <typeparam name="TPoison">	Type of the poison. </typeparam>
+		/// <param name="durableQueueFactory">					A durable queue to which all job information is written in a fail-safe manner. </param>
+		/// <param name="jobAction">							The job action. </param>
+		/// <param name="resultsInspector">						The results inspector. </param>
+		/// <param name="maxConcurrentJobsToExecute">	The maximum queue items to execute (which manipulates the maximum queue items published
+		/// 											per interval based on an assumed 1/2 sec per job). </param>
+		/// <param name="notificationFilter">		 	Provides a way to filter job requests after they're pulled from the durable queue, and
+		/// 											just before they are to enter the execution queue (for instance, for duplicates).  Null values are ignored. </param>
+		/// <param name="pollingInterval">						The polling interval. </param>
+		/// <returns>	An IMonitoredJobQueue instance that simplifies queuing inputs. </returns>
+		/// <exception cref="ArgumentNullException">	  	Thrown when the factory, job queue or results inspectors are null. </exception>
+		/// <exception cref="ArgumentOutOfRangeException">	Thrown when the maximum queue items to publish per interval is too high or low,
+		/// 													or the polling interval is too fast or slow. </exception>
+		[SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "Disposables are now responsibility of MonitoredJobQueue")]
+		[SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures", Justification = "Nested generics, while advanced, are perfectly acceptable within Funcs and we get to use compiler inference here")]
+		public static IMonitoredJobQueue<TInput, TOutput, TPoison> Create<TInput, TOutput, TPoison>(IDurableJobQueueFactory durableQueueFactory,
+			Func<TInput, TOutput> jobAction, int maxConcurrentJobsToExecute, Func<JobResult<TInput, TOutput>, JobQueueAction<TPoison>> resultsInspector,
+			Func<IObservable<TInput>, IObservable<TInput>> notificationFilter, TimeSpan pollingInterval)
+		{
 			return new MonitoredJobQueue<TInput, TOutput, TPoison>(CreateQueue<TInput, TPoison>(durableQueueFactory), jobAction, maxConcurrentJobsToExecute,
-			JobResultInspector.FromInspector(resultsInspector), GetEstimatedJobsToExecutePerInterval(pollingInterval, maxConcurrentJobsToExecute), pollingInterval,
-			LocalScheduler.Default);
+				JobResultInspector.FromInspector(resultsInspector), GetEstimatedJobsToExecutePerInterval(pollingInterval, maxConcurrentJobsToExecute), pollingInterval, notificationFilter,
+				LocalScheduler.Default);
 		}
 
 		[SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "Disposables are now responsibility of MonitoredJobQueue")]
@@ -344,10 +434,10 @@ namespace EPS.Concurrency
 		[SuppressMessage("Gendarme.Rules.Performance", "AvoidUncalledPrivateCodeRule", Justification = "Used by test classes to change scheduler")]
 		internal static IMonitoredJobQueue<TInput, TOutput, TPoison> Create<TInput, TOutput, TPoison>(IDurableJobQueueFactory durableQueueFactory,
 			Func<TInput, TOutput> jobAction, int maxConcurrentJobsToExecute, Func<JobResult<TInput, TOutput>, JobQueueAction<TPoison>> resultsInspector,
-			TimeSpan pollingInterval, int maxQueueItemsToPublishPerInterval, IScheduler scheduler)
+			TimeSpan pollingInterval, int maxQueueItemsToPublishPerInterval, Func<IObservable<TInput>, IObservable<TInput>> notificationFilter, IScheduler scheduler)
 		{
-			return new MonitoredJobQueue<TInput, TOutput, TPoison>(CreateQueue<TInput, TPoison>(durableQueueFactory), jobAction, maxConcurrentJobsToExecute,
-			JobResultInspector.FromInspector(resultsInspector), maxQueueItemsToPublishPerInterval, pollingInterval, scheduler);
+			return new MonitoredJobQueue<TInput, TOutput, TPoison>(CreateQueue<TInput, TPoison>(durableQueueFactory), jobAction, maxConcurrentJobsToExecute, 
+				JobResultInspector.FromInspector(resultsInspector), maxQueueItemsToPublishPerInterval, pollingInterval, notificationFilter, scheduler);
 		}
 	}
 }

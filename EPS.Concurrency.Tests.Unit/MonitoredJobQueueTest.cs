@@ -255,8 +255,8 @@ namespace EPS.Concurrency.Tests.Unit
 				{
 					jobsExecuted.Add(input);
 					return jobAction(input);
-				}, AutoJobExecutionQueue<TInput, TOutput>.DefaultConcurrent, inspector, DurableJobQueueMonitor.
-				DefaultPollingInterval, 50, scheduler);})
+				}, AutoJobExecutionQueue<TInput, TOutput>.DefaultConcurrent, inspector, 
+				DurableJobQueueMonitor.DefaultPollingInterval, 50, null, scheduler);})
 		{
 			this._inspector = inspector;
 			this._jobsExecuted = jobsExecuted;
