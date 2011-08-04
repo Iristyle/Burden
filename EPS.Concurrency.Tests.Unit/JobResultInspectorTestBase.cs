@@ -16,17 +16,22 @@ namespace EPS.Concurrency.Tests.Unit
 			this._factory = factory;
 		}
 
+		protected Func<IJobResultInspector<TJobInput, TJobOutput, TQueuePoison>> Factory
+		{
+			get { return _factory; }
+		}
+
 		[Fact]
 		public void Inspect_ThrowsOnNullNotification()
 		{
-			var instance = _factory();
+			var instance = Factory();
 			Assert.Throws<ArgumentNullException>(() => instance.Inspect(null));
 		}
 
 		[Fact]
 		public void Inspect_ReturnsNonNullResult_OnNonNullInput()
 		{
-			var result = _factory().Inspect(JobResult.CreateOnCompletion(A.Dummy<TJobInput>(), A.Dummy<TJobOutput>()));
+			var result = Factory().Inspect(JobResult.CreateOnCompletion(A.Dummy<TJobInput>(), A.Dummy<TJobOutput>()));
 
 			Assert.NotNull(result);
 		}
@@ -34,7 +39,7 @@ namespace EPS.Concurrency.Tests.Unit
 		private JobQueueAction<TQueuePoison> GetErrorInspectionResults(Exception exception)
 		{
 			var jobResult = JobResult.CreateOnError(A.Dummy<TJobInput>(), exception);
-			return _factory().Inspect(jobResult);
+			return Factory().Inspect(jobResult);
 		}
 
 		[Fact]
