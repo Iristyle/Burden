@@ -31,7 +31,6 @@
     <Compile Include="DurableJobQueueMonitorTest.cs" />
     <Compile Include="AutoJobExecutionQueueTest.cs" />
     <Compile Include="DurableQueueActionTest.cs" />
-    <Compile Include="ExceptionDetailsTest.cs" />
     <Compile Include="DurableJobQueueFactoryTest.cs" />
     <Compile Include="DurableJobQueueTest.cs" />
     <Compile Include="JobExecutionQueueTest.cs" />
@@ -54,6 +53,10 @@
     <ProjectReference Include="..\EPS.Concurrency\EPS.Concurrency.csproj">
       <Project>{8D3539C9-8E82-4EDE-A9E2-5D7DF32F506C}</Project>
       <Name>EPS.Concurrency</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\EPS.SimpleTypes\EPS.SimpleTypes.csproj">
+      <Project>{8B83E289-4F24-43EE-908C-29335554A5D0}</Project>
+      <Name>EPS.SimpleTypes</Name>
     </ProjectReference>
     <ProjectReference Include="..\EPS.Utility\EPS.Utility.csproj">
       <Project>{10D51FFF-4F91-4917-82EA-B7426B2652F6}</Project>

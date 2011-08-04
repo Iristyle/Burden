@@ -54,6 +54,10 @@
       <Project>{8D3539C9-8E82-4EDE-A9E2-5D7DF32F506C}</Project>
       <Name>EPS.Concurrency</Name>
     </ProjectReference>
+    <ProjectReference Include="..\EPS.SimpleTypes\EPS.SimpleTypes.csproj">
+      <Project>{8B83E289-4F24-43EE-908C-29335554A5D0}</Project>
+      <Name>EPS.SimpleTypes</Name>
+    </ProjectReference>
     <ProjectReference Include="..\EPS.Test.Redis\EPS.Test.Redis.csproj">
       <Project>{98C38204-F92D-4B29-8B96-C6F28F82CC61}</Project>
       <Name>EPS.Test.Redis</Name>

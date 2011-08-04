@@ -25,7 +25,6 @@
     <Compile Include="DurableJobQueueAction.cs" />
     <Compile Include="DurableJobQueueActionType.cs" />
     <Compile Include="DurableQueueFactory.cs" />
-    <Compile Include="ExceptionDetails.cs" />
     <Compile Include="IItem.cs" />
     <Compile Include="Item.cs" />
     <Compile Include="LocalScheduler.cs" />
@@ -49,6 +48,12 @@
     <Compile Include="Poison.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TransientJobQueue.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\EPS.SimpleTypes\EPS.SimpleTypes.csproj">
+      <Project>{8B83E289-4F24-43EE-908C-29335554A5D0}</Project>
+      <Name>EPS.SimpleTypes</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="..\Build\Shared.targets" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
