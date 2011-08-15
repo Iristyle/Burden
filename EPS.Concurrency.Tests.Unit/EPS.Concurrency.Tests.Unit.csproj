@@ -29,6 +29,7 @@
     <Compile Include="DurableJobQueueTest.cs" />
     <Compile Include="JobExecutionQueueTest.cs" />
     <Compile Include="JobResultInspectorTestBase.cs" />
+    <Compile Include="MonitoredJobQueueConfigurationTest.cs" />
     <Compile Include="MonitoredJobQueueTestBase.cs" />
     <Compile Include="ItemTest.cs" />
     <Compile Include="JobQueueActionTest.cs" />

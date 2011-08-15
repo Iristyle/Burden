@@ -43,6 +43,7 @@
     <Compile Include="JobResult.cs" />
     <Compile Include="JobResultJournalWriter.cs" />
     <Compile Include="MonitoredJobQueue.cs" />
+    <Compile Include="MonitoredJobQueueConfiguration.cs" />
     <Compile Include="ObservableDurableJobQueue.cs" />
     <Compile Include="ObservableExtensions.cs" />
     <Compile Include="Poison.cs" />

@@ -20,31 +20,31 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact]
 		public void Create_Throws_OnNullFactory_WithIntervalSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, 200, DurableJobQueueMonitor.DefaultPollingInterval)) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, new MonitoredJobQueueConfiguration(200, DurableJobQueueMonitor.DefaultPollingInterval))) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnNullFactory_WithInspectorSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, 200, result => new JobQueueAction<int>(3))) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, new MonitoredJobQueueConfiguration(200), result => new JobQueueAction<int>(3))) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnNullFactory_WithAlternateInspectorSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, 200, A.Fake<IJobResultInspector<int, int, int>>())) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, new MonitoredJobQueueConfiguration(200), A.Fake<IJobResultInspector<int, int, int>>())) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnNullFactory_WithInspectorAndIntervalSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, 200, result => new JobQueueAction<int>(3), DurableJobQueueMonitor.DefaultPollingInterval)) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, new MonitoredJobQueueConfiguration(200, DurableJobQueueMonitor.DefaultPollingInterval), result => new JobQueueAction<int>(3))) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnNullFactory_WithAlternateInspectorAndIntervalSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, 200, A.Fake<IJobResultInspector<int, int, int>>(), DurableJobQueueMonitor.DefaultPollingInterval)) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, new MonitoredJobQueueConfiguration(200, DurableJobQueueMonitor.DefaultPollingInterval), A.Fake<IJobResultInspector<int, int, int>>())) { } });
 		}
 
 		[Fact]
@@ -56,56 +56,103 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact]
 		public void Create_Throws_OnNullJob_WithIntervalSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), null as Func<int, int>, 200, DurableJobQueueMonitor.DefaultPollingInterval)) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), null as Func<int, int>, new MonitoredJobQueueConfiguration(200, DurableJobQueueMonitor.DefaultPollingInterval))) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnNullJob_WithInspectorSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), null as Func<int, int>, 200, result => new JobQueueAction<int>(3))) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), null as Func<int, int>, new MonitoredJobQueueConfiguration(200), result => new JobQueueAction<int>(3))) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnNullJob_WithAlternateInspectorSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), null as Func<int, int>, 200, A.Fake<IJobResultInspector<int, int, int>>())) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), null as Func<int, int>, new MonitoredJobQueueConfiguration(200), A.Fake<IJobResultInspector<int, int, int>>())) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnNullJob_WithInspectorAndIntervalSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), null as Func<int, int>, 200, result => new JobQueueAction<int>(3), DurableJobQueueMonitor.DefaultPollingInterval)) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), null as Func<int, int>, new MonitoredJobQueueConfiguration(200, DurableJobQueueMonitor.DefaultPollingInterval), result => new JobQueueAction<int>(3))) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnNullJob_WithAlternateInspectorAndIntervalSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), null as Func<int, int>, 200, A.Fake<IJobResultInspector<int, int, int>>(), DurableJobQueueMonitor.DefaultPollingInterval)) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), null as Func<int, int>, new MonitoredJobQueueConfiguration(200, DurableJobQueueMonitor.DefaultPollingInterval), A.Fake<IJobResultInspector<int, int, int>>())) { } });
 		}
 
+		[Fact]
+		public void Create_Throws_OnNullJobQueueConfiguration()
+		{
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), (int i) => 3, null)) { } });
+		}
+
+		[Fact]
+		public void Create_Throws_OnNullJobQueueConfiguration_WithIntervalSpecified()
+		{
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), (int i) => 3, null)) { } });
+		}
+
+		[Fact]
+		public void Create_Throws_OnNullJobQueueConfiguration_WithInspectorSpecified()
+		{
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), (int i) => 3, null, result => new JobQueueAction<int>(3))) { } });
+		}
+
+		[Fact]
+		public void Create_Throws_OnNullJobQueueConfiguration_WithNotificationFilterSpecified()
+		{
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), (int i) => 3, null, notification => notification)) { } });
+		}
+
+		[Fact]
+		public void Create_Throws_OnNullJobQueueConfiguration_WithResultInspectorSpecified()
+		{
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), (int i) => 3, null, result => new JobQueueAction<int>(3))) { } });
+		}
+
+		[Fact]
+		public void Create_Throws_OnNullJobQueueConfiguration_WithAlternateInspectorSpecified()
+		{
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), (int i) => 3, null, A.Fake<IJobResultInspector<int, int, int>>())) { } });
+		}
+
+		[Fact]
+		public void Create_Throws_OnNullJobQueueConfiguration_WithAlternateInspectorAndNotificationFilterSpecified()
+		{
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), (int i) => 3, null, A.Fake<IJobResultInspector<int, int, int>>(), notification => notification)) { } });
+		}
+
+		[Fact]
+		public void Create_Throws_OnNullJobQueueConfiguration_WithResultInspectorAndNotificationFilterSpecified()
+		{
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), (int i) => 3, null, result => new JobQueueAction<int>(3), notification => notification)) { } });
+		}
 
 		[Fact]
 		public void Create_Throws_OnNullInspector()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), (int input) => 3, 200, null as Func<JobResult<int, int>, JobQueueAction<int>>)) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), (int input) => 3, new MonitoredJobQueueConfiguration(200), null as Func<JobResult<int, int>, JobQueueAction<int>>)) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnNullAlternateInspector()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), (int input) => 3, 200, null as IJobResultInspector<int, int, int>)) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), (int input) => 3, new MonitoredJobQueueConfiguration(200), null as IJobResultInspector<int, int, int>)) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnNullInspector_WithIntervalSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), (int input) => 3, 200, null as Func<JobResult<int, int>, JobQueueAction<int>>, DurableJobQueueMonitor.DefaultPollingInterval)) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), (int input) => 3, new MonitoredJobQueueConfiguration(200, DurableJobQueueMonitor.DefaultPollingInterval), null as Func<JobResult<int, int>, JobQueueAction<int>>)) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnNullAlternateInspector_WithIntervalSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), (int input) => 3, 200, null as IJobResultInspector<int, int, int>, DurableJobQueueMonitor.DefaultPollingInterval)) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(A.Fake<IDurableJobQueueFactory>(), (int input) => 3, new MonitoredJobQueueConfiguration(200, DurableJobQueueMonitor.DefaultPollingInterval), null as IJobResultInspector<int, int, int>)) { } });
 		}
 
 
@@ -118,31 +165,31 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact]
 		public void Create_Throws_OnMaximumItemsTooLarge_WithIntervalSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, AutoJobExecutionQueue<object,object>.MaxAllowedConcurrentJobs + 1, DurableJobQueueMonitor.DefaultPollingInterval)) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, new MonitoredJobQueueConfiguration(AutoJobExecutionQueue<object,object>.MaxAllowedConcurrentJobs + 1, DurableJobQueueMonitor.DefaultPollingInterval))) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnMaximumItemsTooLarge_WithInspectorSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, AutoJobExecutionQueue<object,object>.MaxAllowedConcurrentJobs + 1, result => new JobQueueAction<int>(3))) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, new MonitoredJobQueueConfiguration(AutoJobExecutionQueue<object,object>.MaxAllowedConcurrentJobs + 1), result => new JobQueueAction<int>(3))) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnMaximumItemsTooLarge_WithAlternateInspectorSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, AutoJobExecutionQueue<object,object>.MaxAllowedConcurrentJobs + 1, A.Fake<IJobResultInspector<int, int, int>>())) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, new MonitoredJobQueueConfiguration(AutoJobExecutionQueue<object,object>.MaxAllowedConcurrentJobs + 1), A.Fake<IJobResultInspector<int, int, int>>())) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnMaximumItemsTooLarge_WithInspectorAndIntervalSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, AutoJobExecutionQueue<object,object>.MaxAllowedConcurrentJobs + 1, result => new JobQueueAction<int>(3), DurableJobQueueMonitor.DefaultPollingInterval)) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, new MonitoredJobQueueConfiguration(AutoJobExecutionQueue<object,object>.MaxAllowedConcurrentJobs + 1, DurableJobQueueMonitor.DefaultPollingInterval), result => new JobQueueAction<int>(3))) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnMaximumItemsTooLarge_WithAlternateInspectorAndIntervalSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, AutoJobExecutionQueue<object,object>.MaxAllowedConcurrentJobs + 1, A.Fake<IJobResultInspector<int, int, int>>(), DurableJobQueueMonitor.DefaultPollingInterval)) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, new MonitoredJobQueueConfiguration(AutoJobExecutionQueue<object, object>.MaxAllowedConcurrentJobs + 1, DurableJobQueueMonitor.DefaultPollingInterval), A.Fake<IJobResultInspector<int, int, int>>())) { } });
 		}
 
 		[Fact]
@@ -154,67 +201,67 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact]
 		public void Create_Throws_OnMaximumItemsTooSmall_WithIntervalSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, 0, DurableJobQueueMonitor.DefaultPollingInterval)) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, new MonitoredJobQueueConfiguration(0, DurableJobQueueMonitor.DefaultPollingInterval))) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnMaximumItemsTooSmall_WithInspectorSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, 0, result => new JobQueueAction<int>(3))) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, new MonitoredJobQueueConfiguration(0), result => new JobQueueAction<int>(3))) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnMaximumItemsTooSmall_WithAlternateInspectorSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, 0, A.Fake<IJobResultInspector<int, int, int>>())) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, new MonitoredJobQueueConfiguration(0), A.Fake<IJobResultInspector<int, int, int>>())) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnMaximumItemsTooSmall_WithInspectorAndIntervalSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, 0, result => new JobQueueAction<int>(3), DurableJobQueueMonitor.DefaultPollingInterval)) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, new MonitoredJobQueueConfiguration(0, DurableJobQueueMonitor.DefaultPollingInterval), result => new JobQueueAction<int>(3))) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnMaximumItemsTooSmall_WithAlternateInspectorAndIntervalSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, 0, A.Fake<IJobResultInspector<int, int, int>>(), DurableJobQueueMonitor.DefaultPollingInterval)) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, new MonitoredJobQueueConfiguration(0, DurableJobQueueMonitor.DefaultPollingInterval), A.Fake<IJobResultInspector<int, int, int>>())) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnIntervalTooFast()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, 200, DurableJobQueueMonitor.MinimumAllowedPollingInterval - TimeSpan.FromTicks(1))) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, new MonitoredJobQueueConfiguration(200, DurableJobQueueMonitor.MinimumAllowedPollingInterval - TimeSpan.FromTicks(1)))) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnIntervalTooFast_WithInspectorSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, 200, result => new JobQueueAction<int>(3), DurableJobQueueMonitor.MinimumAllowedPollingInterval - TimeSpan.FromTicks(1))) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, new MonitoredJobQueueConfiguration(200, DurableJobQueueMonitor.MinimumAllowedPollingInterval - TimeSpan.FromTicks(1)), result => new JobQueueAction<int>(3))) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnIntervalTooFast_WithAlternateInspectorSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, 200, A.Fake<IJobResultInspector<int, int, int>>(), DurableJobQueueMonitor.MinimumAllowedPollingInterval - TimeSpan.FromTicks(1))) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, new MonitoredJobQueueConfiguration(200, DurableJobQueueMonitor.MinimumAllowedPollingInterval - TimeSpan.FromTicks(1)), A.Fake<IJobResultInspector<int, int, int>>())) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnIntervalTooSlow()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, 200, DurableJobQueueMonitor.MaximumAllowedPollingInterval + TimeSpan.FromTicks(1))) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, new MonitoredJobQueueConfiguration(200, DurableJobQueueMonitor.MaximumAllowedPollingInterval + TimeSpan.FromTicks(1)))) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnIntervalTooSlow_WithInspectorSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, 200, result => new JobQueueAction<int>(3), DurableJobQueueMonitor.MaximumAllowedPollingInterval + TimeSpan.FromTicks(1))) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, new MonitoredJobQueueConfiguration(200, DurableJobQueueMonitor.MaximumAllowedPollingInterval + TimeSpan.FromTicks(1)), result => new JobQueueAction<int>(3))) { } });
 		}
 
 		[Fact]
 		public void Create_Throws_OnIntervalTooSlow_WithAlternateInspectorSpecified()
 		{
-			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, 200, A.Fake<IJobResultInspector<int, int, int>>(), DurableJobQueueMonitor.MaximumAllowedPollingInterval + TimeSpan.FromTicks(1))) { } });
+			Assert.Throws<ArgumentNullException>(() => { using (var m = MonitoredJobQueue.Create(null, (int input) => 3, new MonitoredJobQueueConfiguration(200, DurableJobQueueMonitor.MaximumAllowedPollingInterval + TimeSpan.FromTicks(1)), A.Fake<IJobResultInspector<int, int, int>>())) { } });
 		}
 	}
 
@@ -255,8 +302,9 @@ namespace EPS.Concurrency.Tests.Unit
 				{
 					jobsExecuted.Add(input);
 					return jobAction(input);
-				}, AutoJobExecutionQueue<TInput, TOutput>.DefaultConcurrent, inspector, 
-				DurableJobQueueMonitor.DefaultPollingInterval, 50, null, scheduler);})
+				}, 
+				new MonitoredJobQueueConfiguration(AutoJobExecutionQueue<TInput, TOutput>.DefaultConcurrent, DurableJobQueueMonitor.DefaultPollingInterval, 50),
+				inspector, null, scheduler);})
 		{
 			this._inspector = inspector;
 			this._jobsExecuted = jobsExecuted;

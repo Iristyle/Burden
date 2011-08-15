@@ -38,7 +38,7 @@ namespace EPS.Concurrency.Tests.Unit
 			Assert.DoesNotThrow(() => queue.AddJob(_fixture.CreateAnonymous<TInput>()));
 		}
 
-		//there's really only one thing we care about here -- that a job passes from input -> durable queue -> monitor -> job execution queue -> job result journaler
+		
 		/*
 		[Fact]
 		public void AddJob_Calls_Queue()
@@ -59,7 +59,7 @@ namespace EPS.Concurrency.Tests.Unit
 			public int Actual { get; set; }
 		}
 
-		private CallCount GetOnQueueActionCallCount(DurableJobQueueActionType filter, int maxConcurrent, int jobsToCreate)
+		private CallCount GetOnQueueActionCallCount(DurableJobQueueActionType filter, int maxConcurrent, int jobsToCreate, int releaseAfterJobCountStateChanged)
 		{
 			var scheduler = new HistoricalScheduler();
 			var queuedEvent = new ManualResetEventSlim(false);
@@ -74,7 +74,7 @@ namespace EPS.Concurrency.Tests.Unit
 				if (action.ActionType == filter)
 				{
 					++callCount.Actual;
-					if (callCount.Actual == jobsToCreate)
+					if (callCount.Actual == releaseAfterJobCountStateChanged)
 						queuedEvent.Set();
 
 					//else if (callCount.Actual == callCount.MonitoredQueue.MaxQueueItemsToPublishPerInterval)
@@ -86,17 +86,18 @@ namespace EPS.Concurrency.Tests.Unit
 
 				scheduler.AdvanceBy(callCount.MonitoredQueue.PollingInterval.Add(TimeSpan.FromSeconds(1)));
 
-				queuedEvent.Wait(TimeSpan.FromSeconds(20));
+				queuedEvent.Wait(TimeSpan.FromSeconds(5));
 
 				return callCount;
 			}
 		}
 
+		//there's really only one thing we care about here -- that a job passes from input -> durable queue -> monitor -> job execution queue -> job result journaler
 		[Fact]
 		public void MonitoredQueue_MoveItemsThrough_Queued_State()
 		{
 			var jobs = 10;
-			var calls = GetOnQueueActionCallCount(DurableJobQueueActionType.Queued, 5, jobs);
+			var calls = GetOnQueueActionCallCount(DurableJobQueueActionType.Queued, 5, jobs, jobs);
 			Assert.Equal(jobs, calls.Actual);
 			calls.MonitoredQueue.Dispose();
 		}
@@ -105,7 +106,7 @@ namespace EPS.Concurrency.Tests.Unit
 		public void MonitoredQueue_MoveItemsThrough_Pending_State()
 		{
 			var jobs = 10;
-			var calls = GetOnQueueActionCallCount(DurableJobQueueActionType.Pending, 5, jobs);
+			var calls = GetOnQueueActionCallCount(DurableJobQueueActionType.Pending, 5, jobs, jobs);
 			Assert.Equal(jobs, calls.Actual);
 			calls.MonitoredQueue.Dispose();
 		}
@@ -113,9 +114,9 @@ namespace EPS.Concurrency.Tests.Unit
 		[Fact]
 		public void MonitoredQueue_MoveItemsThrough_Completed_State()
 		{
-			var jobs = 10;
-			var calls = GetOnQueueActionCallCount(DurableJobQueueActionType.Completed, 5, jobs);
-			Assert.Equal(jobs, calls.Actual);
+			var toComplete = 5;
+			var calls = GetOnQueueActionCallCount(DurableJobQueueActionType.Completed, toComplete, 10, toComplete);
+			Assert.Equal(toComplete, calls.Actual);
 			calls.MonitoredQueue.Dispose();
 		}
 
@@ -190,20 +191,6 @@ namespace EPS.Concurrency.Tests.Unit
 		{
 			int callsMade = GetNextQueuedItem_CallCount().CallsMade;
 			Assert.Equal(callsMade, jobsInspected.Count);
-		}
-
-		[Fact]
-		public void AddJob_Calls_Complete_AtLeastOnce()
-		{
-			GetNextQueuedItem_CallCount();
-			A.CallTo(() => durableQueue.Complete(A<TInput>.Ignored)).MustHaveHappened(Repeated.AtLeast.Once);
-		}
-
-		[Fact]
-		public void AddJob_Calls_Complete_ExpectedNumberOfTimes()
-		{
-			int callsMade = GetNextQueuedItem_CallCount().CallsMade;
-			A.CallTo(() => durableQueue.Complete(A<TInput>.Ignored)).MustHaveHappened(Repeated.Exactly.Times(callsMade));
 		}
 
 		*/
