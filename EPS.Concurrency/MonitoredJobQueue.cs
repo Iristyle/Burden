@@ -369,10 +369,28 @@ namespace EPS.Concurrency
 				JobResultInspector.FromInspector(resultsInspector), notificationFilter, LocalScheduler.Default);
 		}
 
+		/// <summary>	Creates a simplified IMonitoredJobQueue interface given a durable queue factory and a job queue. </summary>
+		/// <remarks>	7/24/2011. </remarks>
+		/// <typeparam name="TInput"> 	Type of the input. </typeparam>
+		/// <typeparam name="TOutput">	Type of the output. </typeparam>
+		/// <typeparam name="TPoison">	Type of the poison. </typeparam>
+		/// <param name="durableQueueFactory">  	A durable queue to which all job information is written in a fail-safe manner. </param>
+		/// <param name="jobAction">				The job action. </param>
+		/// <param name="jobQueueConfiguration">	Defines the maximum queue items to execute concurrently, polling interval and how many items
+		/// 										should be removed from the durable queue and entered into the job queue over the course of a
+		/// 										given interval,. </param>
+		/// <param name="resultsInspector">			The results inspector. </param>
+		/// <param name="notificationFilter">   	Provides a way to filter job requests after they're pulled from the durable queue, and just
+		/// 										before they are to enter the execution queue (for instance, for duplicates).  Null values are
+		/// 										ignored. </param>
+		/// <param name="scheduler">				The scheduler that can be used to adjust scheduling policies.  Use this only with great care. </param>
+		/// <returns>	An IMonitoredJobQueue instance that simplifies queuing inputs. </returns>
+		/// <exception cref="ArgumentNullException">	  	Thrown when the factory, job queue or results inspectors are null. </exception>
+		/// <exception cref="ArgumentOutOfRangeException">	Thrown when the maximum queue items to publish per interval is too high or low,
+		/// 														or the polling interval is too fast or slow. </exception>
 		[SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "Disposables are now responsibility of MonitoredJobQueue")]
 		[SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures", Justification = "Nested generics, while advanced, are perfectly acceptable within Funcs and we get to use compiler inference here")]
-		[SuppressMessage("Gendarme.Rules.Performance", "AvoidUncalledPrivateCodeRule", Justification = "Used by test classes to change scheduler")]
-		internal static IMonitoredJobQueue<TInput, TOutput, TPoison> Create<TInput, TOutput, TPoison>(IDurableJobQueueFactory durableQueueFactory,
+		public static IMonitoredJobQueue<TInput, TOutput, TPoison> Create<TInput, TOutput, TPoison>(IDurableJobQueueFactory durableQueueFactory,
 			Func<TInput, TOutput> jobAction, MonitoredJobQueueConfiguration jobQueueConfiguration, Func<JobResult<TInput, TOutput>, JobQueueAction<TPoison>> resultsInspector,
 			Func<IObservable<TInput>, IObservable<TInput>> notificationFilter, IScheduler scheduler)
 		{
