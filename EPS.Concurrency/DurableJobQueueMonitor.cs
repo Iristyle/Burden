@@ -59,7 +59,7 @@ namespace EPS.Concurrency
 			if (pollingInterval < DurableJobQueueMonitor.MinimumAllowedPollingInterval)
 			{
 				throw new ArgumentOutOfRangeException("pollingInterval", String.Format(CultureInfo.CurrentCulture, "must be at least {0:c}", DurableJobQueueMonitor.
-				MaximumAllowedPollingInterval));
+				MinimumAllowedPollingInterval));
 			}
 
 			if (maxQueueItemsToPublishPerInterval > DurableJobQueueMonitor.MaxAllowedQueueItemsToPublishPerInterval)
