@@ -391,11 +391,11 @@ namespace EPS.Concurrency
 		[SuppressMessage("Microsoft.Reliability", "CA2000:Dispose objects before losing scope", Justification = "Disposables are now responsibility of MonitoredJobQueue")]
 		[SuppressMessage("Microsoft.Design", "CA1006:DoNotNestGenericTypesInMemberSignatures", Justification = "Nested generics, while advanced, are perfectly acceptable within Funcs and we get to use compiler inference here")]
 		public static IMonitoredJobQueue<TInput, TOutput, TPoison> Create<TInput, TOutput, TPoison>(IDurableJobQueueFactory durableQueueFactory,
-			Func<TInput, TOutput> jobAction, MonitoredJobQueueConfiguration jobQueueConfiguration, Func<JobResult<TInput, TOutput>, JobQueueAction<TPoison>> resultsInspector,
+			Func<TInput, TOutput> jobAction, MonitoredJobQueueConfiguration jobQueueConfiguration, IJobResultInspector<TInput, TOutput, TPoison> resultsInspector,
 			Func<IObservable<TInput>, IObservable<TInput>> notificationFilter, IScheduler scheduler)
 		{
 			return new MonitoredJobQueue<TInput, TOutput, TPoison>(CreateQueue<TInput, TPoison>(durableQueueFactory), jobAction, jobQueueConfiguration, 
-				JobResultInspector.FromInspector(resultsInspector), notificationFilter, scheduler);
+				resultsInspector, notificationFilter, scheduler);
 		}
 	}
 }
