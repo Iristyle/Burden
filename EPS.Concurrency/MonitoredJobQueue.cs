@@ -21,6 +21,7 @@ namespace EPS.Concurrency
 		private readonly DurableJobQueueMonitor<TInput, TPoison> _monitor;
 		private readonly JobResultJournalWriter<TInput, TOutput, TPoison> _resultJournaler;
 		private readonly IDisposable _subscription;
+		private readonly IScheduler _scheduler;
 
 		//creation calls should go through the static factory 
 		internal MonitoredJobQueue(ObservableDurableJobQueue<TInput, TPoison> durableQueue, Func<TInput, TOutput> jobAction,
@@ -48,6 +49,12 @@ namespace EPS.Concurrency
 			{
 				throw new ArgumentNullException("scheduler");
 			}
+			if (scheduler == System.Reactive.Concurrency.Scheduler.Immediate)
+			{
+				throw new ArgumentException("Scheduler.Immediate can have horrible side affects, like totally locking up on Subscribe calls, so don't use it", "scheduler");
+			}
+			
+			this._scheduler = scheduler;
 			this._durableQueue = durableQueue;
 			this._monitor = new DurableJobQueueMonitor<TInput, TPoison>(durableQueue, jobQueueConfiguration.MaxQueueItemsToPublishPerInterval,
 				jobQueueConfiguration.PollingInterval, scheduler);
@@ -90,6 +97,13 @@ namespace EPS.Concurrency
 				_resultJournaler.Dispose();
 				_durableQueue.Dispose();
 			}
+		}
+
+		/// <summary>	Gets the scheduler. </summary>
+		/// <value>	The scheduler. </value>
+		public IScheduler Scheduler
+		{
+			get { return _scheduler; }
 		}
 
 		/// <summary>	Gets notifications as items are moved around the durable queue. </summary>

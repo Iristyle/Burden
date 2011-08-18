@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Reactive.Concurrency;
 
 namespace EPS.Concurrency
 {
@@ -57,6 +58,9 @@ namespace EPS.Concurrency
 		/// <value>	The polling interval. </value>
 		TimeSpan PollingInterval { get; }
 
+		/// <summary>	Gets the scheduler being used for this queue. </summary>
+		/// <value>	The scheduler. </value>
+		IScheduler Scheduler { get; }
 		//TODO: 7-26-2011 -- consider surfacing additional observables from a wrapped IJobResultInspector
 	}
 }
