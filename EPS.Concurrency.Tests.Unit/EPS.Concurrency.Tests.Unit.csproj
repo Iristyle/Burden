@@ -42,6 +42,7 @@
     <Compile Include="ObservableExtensionsTest.cs" />
     <Compile Include="PoisonTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TransientJobQueueFactory.cs" />
     <Compile Include="TransientJobQueueTest.cs" />
   </ItemGroup>
   <ItemGroup>

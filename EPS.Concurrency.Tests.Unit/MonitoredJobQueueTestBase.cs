@@ -2,7 +2,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Concurrency;
 using System.Threading;
-using EPS.Utility;
 using Ploeh.AutoFixture;
 using Xunit;
 
@@ -12,15 +11,6 @@ namespace EPS.Concurrency.Tests.Unit
 	public abstract class MonitoredJobQueueTestBase<TMonitoredQueue, TInput, TOutput, TPoison>
 		where TMonitoredQueue : IMonitoredJobQueue<TInput, TOutput, TPoison>
 	{
-		public class TransientJobQueueFactory
-			: IDurableJobQueueFactory
-		{
-			public IDurableJobQueue<TQueueInput, TQueuePoison> CreateDurableJobQueue<TQueueInput, TQueuePoison>()
-			{
-				return new TransientJobQueue<TQueueInput, TQueuePoison>(GenericEqualityComparer<TQueueInput>.ByAllMembers(), GenericEqualityComparer<TQueuePoison>.ByAllMembers());
-			}
-		}
-
 		private readonly Fixture _fixture = new Fixture();
 		private readonly Func<IScheduler, IDurableJobQueueFactory, IMonitoredJobQueue<TInput, TOutput, TPoison>> _monitoredJobQueueFactory;
 		private readonly TransientJobQueueFactory _durableQueueFactory = new TransientJobQueueFactory();
