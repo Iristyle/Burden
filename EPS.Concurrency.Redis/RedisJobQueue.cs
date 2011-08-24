@@ -36,9 +36,9 @@ namespace EPS.Concurrency.Redis
 			if (null == item) { throw new ArgumentNullException("item"); }
 
 			using (var client = redisClientsManager.GetClient())
+			using (var queueClient = client.As<TQueue>())
 			{
-				var orderSyncRequestClient = client.As<TQueue>();
-				var requestList = orderSyncRequestClient.Lists[String.Format("q:{0}", queueNames.Request)];
+				var requestList = queueClient.Lists[String.Format("q:{0}", queueNames.Request)];
 				requestList.Prepend(item);
 			}
 		}
@@ -47,11 +47,11 @@ namespace EPS.Concurrency.Redis
 		/// <remarks>	7/19/2011. </remarks>
 		public void ResetAllPendingToQueued()
 		{
-			using (var client = redisClientsManager.GetClient()
-				.As<TQueue>())
+			using (var client = redisClientsManager.GetClient())
+			using (var queueClient = client.As<TQueue>())
 			{
-				var requestQueue = client.Lists[String.Format("q:{0}", queueNames.Request)];
-				var pendingQueue = client.Lists[String.Format("q:{0}", queueNames.Pending)];
+				var requestQueue = queueClient.Lists[String.Format("q:{0}", queueNames.Request)];
+				var pendingQueue = queueClient.Lists[String.Format("q:{0}", queueNames.Pending)];
 
 				while (pendingQueue.Count != 0)
 				{
@@ -65,10 +65,10 @@ namespace EPS.Concurrency.Redis
 		/// <returns>	An enumerator that allows foreach to be used to process poisoned items in this collection. </returns>
 		public IEnumerable<TQueuePoison> GetPoisoned()
 		{
-			using (var client = redisClientsManager.GetClient()
-				.As<TQueuePoison>())
+			using (var client = redisClientsManager.GetClient())
+			using (var queuePoisonClient = client.As<TQueuePoison>())
 			{
-				return client.Lists[String.Format("q:{0}", queueNames.Poison)].Reverse();
+				return queuePoisonClient.Lists[String.Format("q:{0}", queueNames.Poison)].Reverse();
 			}
 		}
 
@@ -77,16 +77,16 @@ namespace EPS.Concurrency.Redis
 		/// <returns>	An item if there was one available, otherwise null. </returns>
 		public IItem<TQueue> NextQueuedItem()
 		{
-			using (var client = redisClientsManager.GetClient()
-				.As<TQueue>())
+			using (var client = redisClientsManager.GetClient())
+			using (var queueClient = client.As<TQueue>())
 			{
-				var requestQueue = client.Lists[String.Format("q:{0}", queueNames.Request)];
-				var pendingQueue = client.Lists[String.Format("q:{0}", queueNames.Pending)];
+				var requestQueue = queueClient.Lists[String.Format("q:{0}", queueNames.Request)];
+				var pendingQueue = queueClient.Lists[String.Format("q:{0}", queueNames.Pending)];
 
 				//TODO: 8-3-2011 -- I believe there is a race condition here and we need to use a distributed lock somehow
 				return requestQueue.Count == 0 ? Item.None<TQueue>() : 
 					//moves an item out of 'request' and into 'pending' (which will be reverted at start up, should the process be terminated, etc)
-					Item.From(client.PopAndPushItemBetweenLists(requestQueue, pendingQueue));
+					Item.From(queueClient.PopAndPushItemBetweenLists(requestQueue, pendingQueue));
 			}
 		}
 
@@ -102,9 +102,11 @@ namespace EPS.Concurrency.Redis
 			if (null == poisonedItem) { throw new ArgumentNullException("poisonedItem"); }
 
 			using (var client = redisClientsManager.GetClient())
+			using (var queueClient = client.As<TQueue>())
+			using (var queuePoisonClient = client.As<TQueuePoison>())
 			{
-				var pendingQueue = client.As<TQueue>().Lists[String.Format("q:{0}", queueNames.Pending)];
-				var poisonQueue = client.As<TQueuePoison>().Lists[String.Format("q:{0}", queueNames.Poison)];
+				var pendingQueue = queueClient.Lists[String.Format("q:{0}", queueNames.Pending)];
+				var poisonQueue = queuePoisonClient.Lists[String.Format("q:{0}", queueNames.Poison)];
 
 				if (!pendingQueue.Remove(item))
 					return false;
@@ -124,10 +126,10 @@ namespace EPS.Concurrency.Redis
 		{
 			if (null == item) { throw new ArgumentNullException("item"); }
 
-			using (var client = redisClientsManager.GetClient()
-				.As<TQueue>())
+			using (var client = redisClientsManager.GetClient())
+			using (var queueClient = client.As<TQueue>())
 			{
-				return client.Lists[String.Format("q:{0}", queueNames.Pending)].Remove(item);
+				return queueClient.Lists[String.Format("q:{0}", queueNames.Pending)].Remove(item);
 			}
 		}
 
@@ -136,10 +138,10 @@ namespace EPS.Concurrency.Redis
 		/// <returns>	An enumerator that allows foreach to be used to process poisoned items in this collection. </returns>
 		public IEnumerable<TQueue> GetQueued()
 		{
-			using (var client = redisClientsManager.GetClient()
-				.As<TQueue>())
+			using (var client = redisClientsManager.GetClient())
+			using (var queueClient = client.As<TQueue>())
 			{
-				return client.Lists[String.Format("q:{0}", queueNames.Request)].Reverse();
+				return queueClient.Lists[String.Format("q:{0}", queueNames.Request)].Reverse();
 			}
 		}
 
@@ -148,10 +150,10 @@ namespace EPS.Concurrency.Redis
 		/// <returns>	An enumerator that allows foreach to be used to process poisoned items in this collection. </returns>
 		public IEnumerable<TQueue> GetPending()
 		{
-			using (var client = redisClientsManager.GetClient()
-				.As<TQueue>())
+			using (var client = redisClientsManager.GetClient())
+			using (var queueClient = client.As<TQueue>())
 			{
-				return client.Lists[String.Format("q:{0}", queueNames.Pending)].Reverse();
+				return queueClient.Lists[String.Format("q:{0}", queueNames.Pending)].Reverse();
 			}
 		}
 
@@ -164,10 +166,10 @@ namespace EPS.Concurrency.Redis
 		{
 			if (null == poisonedItem) { throw new ArgumentNullException("poisonedItem"); }
 
-			using (var client = redisClientsManager.GetClient()
-				.As<TQueuePoison>())
+			using (var client = redisClientsManager.GetClient())
+			using (var queuePoisonClient = client.As<TQueuePoison>())
 			{
-				var poisonQueue = client.Lists[String.Format("q:{0}", queueNames.Poison)];
+				var poisonQueue = queuePoisonClient.Lists[String.Format("q:{0}", queueNames.Poison)];
 				return poisonQueue.Remove(poisonedItem);
 			}
 		}
