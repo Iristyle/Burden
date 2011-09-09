@@ -92,8 +92,8 @@ namespace EPS.Concurrency
 		}
 
 		/// <summary>
-		/// Dispose of this object, cleaning up any resources it uses.  Will cancel any outstanding un-executed jobs, and will wait on jobs
-		/// currently executing to complete.
+		/// Dispose of this object, cleaning up any resources it uses.  This simply terminates the listener before being auto-terminated by the
+		/// publisher of the notification stream.
 		/// </summary>
 		/// <remarks>	7/24/2011. </remarks>
 		/// <param name="disposing">	true if resources should be disposed, false if not. </param>
