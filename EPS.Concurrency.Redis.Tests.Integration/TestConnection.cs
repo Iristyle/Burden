@@ -1,0 +1,29 @@
+using System;
+using System.Globalization;
+using EPS.Test.Redis;
+using ServiceStack.Redis;
+
+namespace EPS.Concurrency.Redis.Tests.Integration
+{
+	public static class TestConnection
+	{
+		private static RedisConnection _redisConnection = RedisHostManager.Current();
+		private static IRedisClientsManager _redisClientsManager;
+
+		public static IRedisClientsManager GetClientManager(bool flush = true)
+		{
+			if (null == _redisClientsManager)
+				_redisClientsManager = new BasicRedisClientManager(new string[] { String.Format(CultureInfo.InvariantCulture, "{0}:{1}", _redisConnection.Host, _redisConnection.Port) });
+			
+			if (flush)
+			{
+				using (var client = _redisClientsManager.GetClient())
+				{
+					client.FlushAll();
+				}
+			}
+
+			return _redisClientsManager;
+		}
+	}
+}

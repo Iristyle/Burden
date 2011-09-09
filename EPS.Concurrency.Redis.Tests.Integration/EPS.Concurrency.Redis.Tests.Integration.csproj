@@ -34,6 +34,7 @@
     <Compile Include="QueueNamesTest.cs" />
     <Compile Include="RedisJobQueueFactoryTest.cs" />
     <Compile Include="RedisJobQueueTest.cs" />
+    <Compile Include="TestConnection.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EPS.Concurrency.Redis\EPS.Concurrency.Redis.csproj">

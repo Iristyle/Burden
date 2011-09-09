@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Globalization;
 using EPS.Concurrency.Tests.Unit;
-using EPS.Test.Redis;
-using ServiceStack.Redis;
 using Xunit;
 
 namespace EPS.Concurrency.Redis.Tests.Integration
@@ -26,17 +23,9 @@ namespace EPS.Concurrency.Redis.Tests.Integration
 	public abstract class RedisJobQueueTest<TQueue, TQueuePoison>
 		: DurableJobQueueTest<RedisJobQueue<TQueue, TQueuePoison>, TQueue, TQueuePoison>
 	{
-		private static RedisConnection redisConnection = RedisHostManager.Current();
-		private static IRedisClientsManager _clientManager;
-		private static IRedisClientsManager GetClientManager()
-		{			
-			if (null == _clientManager)
-				_clientManager = new BasicRedisClientManager(new string[] { String.Format(CultureInfo.InvariantCulture, "{0}:{1}", redisConnection.Host, redisConnection.Port) });
-			return _clientManager;
-		}
-
 		protected RedisJobQueueTest(Func<TQueue, TQueuePoison> poisonConverter) :
-			base(() => new RedisJobQueue<TQueue, TQueuePoison>(() => GetClientManager().GetClient(), QueueNames.Default), poisonConverter)
+			//HACK: 9-9-2011 -- the tests in DurableJobQueueTest should probably be fixed, because flushing the DB each time breaks 11 tests (so yeah, they could be written better)
+			base(() => new RedisJobQueue<TQueue, TQueuePoison>(() => TestConnection.GetClientManager(false).GetClient(), QueueNames.Default), poisonConverter)
 		{ }
 
 		[Fact]
@@ -48,7 +37,7 @@ namespace EPS.Concurrency.Redis.Tests.Integration
 		[Fact]
 		public void Constructor_Throws_OnNullQueueNames()
 		{
-			Assert.Throws<ArgumentNullException>(() => new RedisJobQueue<TQueue, TQueuePoison>(() => GetClientManager().GetClient(), null));
+			Assert.Throws<ArgumentNullException>(() => new RedisJobQueue<TQueue, TQueuePoison>(() => TestConnection.GetClientManager().GetClient(), null));
 		}
 	}
 }
