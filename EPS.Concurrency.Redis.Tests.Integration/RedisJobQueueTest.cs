@@ -26,14 +26,17 @@ namespace EPS.Concurrency.Redis.Tests.Integration
 	public abstract class RedisJobQueueTest<TQueue, TQueuePoison>
 		: DurableJobQueueTest<RedisJobQueue<TQueue, TQueuePoison>, TQueue, TQueuePoison>
 	{
+		private static RedisConnection redisConnection = RedisHostManager.Current();
+		private static IRedisClientsManager _clientManager;
 		private static IRedisClientsManager GetClientManager()
-		{
-			var redisConnection = RedisHostManager.Current();
-			return new BasicRedisClientManager(new string[] { String.Format(CultureInfo.InvariantCulture, "{0}:{1}", redisConnection.Host, redisConnection.Port) });
+		{			
+			if (null == _clientManager)
+				_clientManager = new BasicRedisClientManager(new string[] { String.Format(CultureInfo.InvariantCulture, "{0}:{1}", redisConnection.Host, redisConnection.Port) });
+			return _clientManager;
 		}
 
 		protected RedisJobQueueTest(Func<TQueue, TQueuePoison> poisonConverter) :
-			base(() => new RedisJobQueue<TQueue, TQueuePoison>(GetClientManager(), QueueNames.Default), poisonConverter)
+			base(() => new RedisJobQueue<TQueue, TQueuePoison>(() => GetClientManager().GetClient(), QueueNames.Default), poisonConverter)
 		{ }
 
 		[Fact]
@@ -45,7 +48,7 @@ namespace EPS.Concurrency.Redis.Tests.Integration
 		[Fact]
 		public void Constructor_Throws_OnNullQueueNames()
 		{
-			Assert.Throws<ArgumentNullException>(() => new RedisJobQueue<TQueue, TQueuePoison>(GetClientManager(), null));
+			Assert.Throws<ArgumentNullException>(() => new RedisJobQueue<TQueue, TQueuePoison>(() => GetClientManager().GetClient(), null));
 		}
 	}
 }

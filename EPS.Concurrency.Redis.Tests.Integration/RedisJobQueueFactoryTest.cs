@@ -10,15 +10,17 @@ namespace EPS.Concurrency.Redis.Tests.Integration
 	public class RedisJobQueueFactoryTest
 		: DurableJobQueueFactoryTest<RedisJobQueueFactory>
 	{
-		private static RedisConnection connection = RedisHostManager.Current();
-
+		private static RedisConnection redisConnection = RedisHostManager.Current();
+		private static IRedisClientsManager _clientManager;
 		private static IRedisClientsManager GetClientManager()
 		{
-			return new BasicRedisClientManager(String.Format(CultureInfo.InvariantCulture, "{0}:{1}", connection.Host, connection.Port));
+			if (null == _clientManager)
+				_clientManager = new BasicRedisClientManager(new string[] { String.Format(CultureInfo.InvariantCulture, "{0}:{1}", redisConnection.Host, redisConnection.Port) });
+			return _clientManager;
 		}
 
 		public RedisJobQueueFactoryTest()
-			: base(() => new RedisJobQueueFactory(GetClientManager(), QueueNames.Default))
+			: base(() => new RedisJobQueueFactory(() => GetClientManager().GetClient(), QueueNames.Default))
 		{ }
 
 		[Fact]
@@ -30,7 +32,7 @@ namespace EPS.Concurrency.Redis.Tests.Integration
 		[Fact]
 		public void Constructor_Throws_OnNullQueueNames()
 		{
-			Assert.Throws<ArgumentNullException>(() => new RedisJobQueueFactory(GetClientManager(), null));
+			Assert.Throws<ArgumentNullException>(() => new RedisJobQueueFactory(() => GetClientManager().GetClient(), null));
 		}
 	}
 }

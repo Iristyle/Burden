@@ -5,23 +5,24 @@ namespace EPS.Concurrency.Redis
 {
 	/// <summary>	Factory used to create instances of RedisJobQueue.  </summary>
 	/// <remarks>	7/24/2011. </remarks>
-	public class RedisJobQueueFactory : IDurableJobQueueFactory
+	public class RedisJobQueueFactory 
+		: IDurableJobQueueFactory
 	{
-		private readonly IRedisClientsManager clientManager;
-		private readonly QueueNames queueNames;
+		private readonly Func<IRedisClient> _redisClientFactory;
+		private readonly QueueNames _queueNames;
 
 		/// <summary>	Constructor. </summary>
 		/// <remarks>	7/24/2011. </remarks>
-		/// <exception cref="ArgumentNullException">	Thrown when the cilentManager or queueNames are null. </exception>
-		/// <param name="clientManager">	The Redis client manager. </param>
+		/// <exception cref="ArgumentNullException">	Thrown when the client factory or queueNames are null. </exception>
+		/// <param name="redisClientsManager">	The Redis client manager. </param>
 		/// <param name="queueNames">   	List of names of the queues. </param>
-		public RedisJobQueueFactory(IRedisClientsManager clientManager, QueueNames queueNames)
+		public RedisJobQueueFactory(Func<IRedisClient> redisClientFactory, QueueNames queueNames)
 		{
-			if (null == clientManager) { throw new ArgumentNullException("clientManager"); }
+			if (null == redisClientFactory) { throw new ArgumentNullException("redisClientFactory"); }
 			if (null == queueNames) { throw new ArgumentNullException("queueNames"); }
 
-			this.clientManager = clientManager;
-			this.queueNames = queueNames;
+			this._redisClientFactory = redisClientFactory;
+			this._queueNames = queueNames;
 		}
 
 		/// <summary>	Creates the durable job queue. </summary>
@@ -31,7 +32,7 @@ namespace EPS.Concurrency.Redis
 		/// <returns>	A new instance of a RedisJobQueue. </returns>
 		public IDurableJobQueue<TInput, TPoison> CreateDurableJobQueue<TInput, TPoison>()
 		{
-			return new RedisJobQueue<TInput, TPoison>(clientManager, queueNames);
+			return new RedisJobQueue<TInput, TPoison>(_redisClientFactory, _queueNames);
 		}
 	}
 }
