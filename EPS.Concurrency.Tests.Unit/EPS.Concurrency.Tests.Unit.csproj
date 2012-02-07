@@ -14,8 +14,7 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Reactive, Version=1.0.10621.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\lib\Rx-1.0.10621\Net4\System.Reactive.dll</HintPath>
+      <HintPath>..\packages\Rx-Main.1.0.11226\lib\Net4\System.Reactive.dll</HintPath>
     </Reference>
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -60,6 +59,9 @@
       <Project>{10D51FFF-4F91-4917-82EA-B7426B2652F6}</Project>
       <Name>EPS.Utility</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="..\Build\Shared.Test.targets" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
