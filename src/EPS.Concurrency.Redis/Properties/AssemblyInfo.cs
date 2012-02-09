@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("EPS.Concurrency.Redis")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("An implementation of a persistent job queue in Redis")]
 [assembly: AssemblyProduct("EPS.Concurrency.Redis")]
 [assembly: AssemblyCulture("")]
 

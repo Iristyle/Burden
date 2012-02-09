@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("EPS.Concurrency")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("A durable job queue library based on Reactive extensions")]
 [assembly: AssemblyProduct("EPS.Concurrency")]
 [assembly: AssemblyCulture("")]
 
