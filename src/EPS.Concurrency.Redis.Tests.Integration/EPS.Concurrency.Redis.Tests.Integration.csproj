@@ -11,6 +11,9 @@
     <RestorePackages>true</RestorePackages>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="RedisIntegration">
+      <HintPath>..\packages\RedisIntegration.0.2.0.0\lib\net40\RedisIntegration.dll</HintPath>
+    </Reference>
     <Reference Include="ServiceStack.Common">
       <HintPath>..\packages\ServiceStack.Common.3.4.3\lib\ServiceStack.Common.dll</HintPath>
     </Reference>

@@ -1,13 +1,13 @@
 using System;
 using System.Globalization;
-using EPS.Test.Redis;
+using RedisIntegration;
 using ServiceStack.Redis;
 
 namespace EPS.Concurrency.Redis.Tests.Integration
 {
 	public static class TestConnection
 	{
-		private static RedisConnection _redisConnection = RedisHostManager.Current();
+		private static Connection _redisConnection = HostManager.RunInstance();
 		private static IRedisClientsManager _redisClientsManager;
 
 		public static IRedisClientsManager GetClientManager(bool flush = true)
