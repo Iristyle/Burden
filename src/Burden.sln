@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EPS.Concurrency", "EPS.Concurrency\EPS.Concurrency.csproj", "{8D3539C9-8E82-4EDE-A9E2-5D7DF32F506C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EPS.Concurrency.Redis", "EPS.Concurrency.Redis\EPS.Concurrency.Redis.csproj", "{92B6F718-458A-4ABD-8F35-3E257828AA57}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Analysis|Any CPU = Analysis|Any CPU
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8D3539C9-8E82-4EDE-A9E2-5D7DF32F506C}.Analysis|Any CPU.ActiveCfg = Analysis|Any CPU
+		{8D3539C9-8E82-4EDE-A9E2-5D7DF32F506C}.Analysis|Any CPU.Build.0 = Analysis|Any CPU
+		{8D3539C9-8E82-4EDE-A9E2-5D7DF32F506C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8D3539C9-8E82-4EDE-A9E2-5D7DF32F506C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8D3539C9-8E82-4EDE-A9E2-5D7DF32F506C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8D3539C9-8E82-4EDE-A9E2-5D7DF32F506C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{92B6F718-458A-4ABD-8F35-3E257828AA57}.Analysis|Any CPU.ActiveCfg = Analysis|Any CPU
+		{92B6F718-458A-4ABD-8F35-3E257828AA57}.Analysis|Any CPU.Build.0 = Analysis|Any CPU
+		{92B6F718-458A-4ABD-8F35-3E257828AA57}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{92B6F718-458A-4ABD-8F35-3E257828AA57}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{92B6F718-458A-4ABD-8F35-3E257828AA57}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{92B6F718-458A-4ABD-8F35-3E257828AA57}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
