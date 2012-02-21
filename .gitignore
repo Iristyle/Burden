@@ -98,7 +98,7 @@ CVS/
 ~$*
 
 #NuGet
-packages/
+[Pp]ackages/
 *.nupkg
 
 #Miscellaneous Files
