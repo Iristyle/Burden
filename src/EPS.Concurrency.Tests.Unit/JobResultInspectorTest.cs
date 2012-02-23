@@ -1,5 +1,5 @@
 using System;
-using EPS.Utility;
+using EqualityComparer;
 using Xunit;
 
 namespace EPS.Concurrency.Tests.Unit

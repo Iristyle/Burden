@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading;
-using EPS.Utility;
+using EqualityComparer;
 using Ploeh.AutoFixture;
 using Xunit;
 

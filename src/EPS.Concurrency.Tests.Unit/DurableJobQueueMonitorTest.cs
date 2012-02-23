@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Concurrency;
 using System.Threading;
-using EPS.Utility;
+using EqualityComparer;
 using FakeItEasy;
 using Ploeh.AutoFixture;
 using Xunit;
