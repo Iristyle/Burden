@@ -1,5 +1,6 @@
-﻿using System.Reflection;
-using System.Runtime.CompilerServices;
+﻿using System;
+using System.Reflection;
+using System.Resources;
 using System.Runtime.InteropServices;
 
 // General Information about an assembly is controlled through the following 
@@ -9,6 +10,16 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyDescription("An implementation of a persistent job queue in Redis")]
 [assembly: AssemblyProduct("Burden.Redis")]
 [assembly: AssemblyCulture("")]
+[assembly: AssemblyCompany("East Point Systems, Inc. http://www.eastpointsystems.com/")]
+[assembly: AssemblyCopyright("Copyright © 2012 East Point Systems, Inc.")]
+[assembly: AssemblyTrademark("")]
+[assembly: AssemblyConfiguration("")]
+[assembly: AssemblyVersion("0.1.0.0")]
+[assembly: AssemblyFileVersion("0.1.0.0")]
+[assembly: AssemblyInformationalVersion("0.1.0.0")]
+[assembly: CLSCompliant(true)]
+[assembly: NeutralResourcesLanguage("en")]
+
 
 // Setting ComVisible to false makes the types in this assembly not visible 
 // to COM components.  If you need to access a type in this assembly from 

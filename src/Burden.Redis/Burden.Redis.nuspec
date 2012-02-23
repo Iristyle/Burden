@@ -10,16 +10,11 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>$description$</description>
     <releaseNotes>Initial release</releaseNotes>
-    <projectUrl>https://bitbucket.org/EPS/common</projectUrl>
-    <tags>enum</tags>
+    <projectUrl>https://github.com/EastPoint/Burden</projectUrl>
+    <tags>rx reliable mq message queue redis</tags>
     <language>en-US</language>
     <copyright>East Point Systems 2012 and contributors</copyright>
     <dependencies>
-        <dependency id="Common.Logging" version="2.0.0" />
-        <dependency id="Rx-Main" version="1.0.11226" />
-        <dependency id="ServiceStack.Common" version="3.4.3" />
-        <dependency id="ServiceStack.Redis" version="3.3.6" />
-        <dependency id="ServiceStack.Text" version="3.4.3" />
         <dependency id="Burden" version="0.1.0.0" />
     </dependencies>
   </metadata>

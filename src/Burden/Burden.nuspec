@@ -10,14 +10,9 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>$description$</description>
     <releaseNotes>Initial release</releaseNotes>
-    <projectUrl>https://bitbucket.org/EPS/common</projectUrl>
-    <tags>enum</tags>
+    <projectUrl>https://github.com/EastPoint/Burden</projectUrl>
+    <tags>rx reliable mq message queue redis</tags>
     <language>en-US</language>
     <copyright>East Point Systems 2012 and contributors</copyright>
-    <dependencies>
-        <dependency id="EPS.SimpleTypes" version="0.1.0.0" />
-        <dependency id="Common.Logging" version="2.0.0" />
-        <dependency id="Rx-Main" version="1.0.11226" />
-    </dependencies>
   </metadata>
 </package>
