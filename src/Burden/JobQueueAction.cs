@@ -1,6 +1,6 @@
 using System;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	/// <summary>	Defines the action that should be performed in response to a job result.  </summary>
 	/// <remarks>	7/8/2011. </remarks>

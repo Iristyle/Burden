@@ -2,7 +2,7 @@
 using Ploeh.AutoFixture;
 using Xunit;
 
-namespace EPS.Concurrency.Redis.Tests.Integration
+namespace Burden.Redis.Tests
 {
 	public class QueueNamesTest
 	{

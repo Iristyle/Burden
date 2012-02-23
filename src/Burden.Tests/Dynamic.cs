@@ -1,4 +1,4 @@
-﻿namespace EPS.Concurrency.Tests.Unit
+﻿namespace Burden.Tests
 {
 	using System;
 	using System.Diagnostics.CodeAnalysis;

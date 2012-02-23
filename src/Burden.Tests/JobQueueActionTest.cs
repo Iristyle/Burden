@@ -2,7 +2,7 @@ using System;
 using Xunit;
 using Xunit.Extensions;
 
-namespace EPS.Concurrency.Tests.Unit
+namespace Burden.Tests
 {
 	public class JobQueueActionTestByValueTypePoison
 		: JobQueueActionTest<int>

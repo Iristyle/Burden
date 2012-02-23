@@ -2,7 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Linq;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	/// <summary>	Adds some additional methods of creating Observables.  </summary>
 	/// <remarks>	7/8/2011. </remarks>

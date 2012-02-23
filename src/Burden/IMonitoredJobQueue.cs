@@ -2,7 +2,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Concurrency;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	/// <summary>	A very simple interface for adding items to a monitored job queue.  </summary>
 	/// <remarks>	7/24/2011. </remarks>

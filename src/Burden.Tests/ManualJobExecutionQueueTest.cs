@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Concurrency;
 using Xunit;
 
-namespace EPS.Concurrency.Tests.Unit
+namespace Burden.Tests
 {
 
 	public abstract class ManualJobExecutionQueueTest<TJobInput, TJobOutput> :

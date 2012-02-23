@@ -1,7 +1,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	/// <summary>	Describes the details of a job in terms of input and output, or input and resultant Exception. </summary>
 	/// <remarks>

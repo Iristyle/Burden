@@ -4,7 +4,7 @@ using Ploeh.AutoFixture.Xunit;
 using Xunit;
 using Xunit.Extensions;
 
-namespace EPS.Concurrency.Tests.Unit
+namespace Burden.Tests
 {
 	public class MonitoredJobQueueConfigurationTest
 	{

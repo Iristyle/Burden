@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using FakeItEasy;
 using Xunit;
 
-namespace EPS.Concurrency.Tests.Unit
+namespace Burden.Tests
 {
 	[SuppressMessage("Microsoft.Design", "CA1005:AvoidExcessiveParametersOnGenericTypes", Justification = "Non-issue for test classes really")]
 	public abstract class JobResultInspectorTestBase<TJobInput, TJobOutput, TQueuePoison>

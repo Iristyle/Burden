@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	/// <summary>	Describes a durable job queue action.  </summary>
 	/// <remarks>	7/26/2011. </remarks>

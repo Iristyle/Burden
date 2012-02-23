@@ -5,7 +5,7 @@ using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using Common.Logging;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	/// <summary>
 	/// This class journals the results of an in memory observable job publisher to a backing store for durability, using a custom job result

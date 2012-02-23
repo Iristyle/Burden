@@ -5,9 +5,9 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("EPS.Concurrency")]
+[assembly: AssemblyTitle("Burden")]
 [assembly: AssemblyDescription("A durable job queue library based on Reactive extensions")]
-[assembly: AssemblyProduct("EPS.Concurrency")]
+[assembly: AssemblyProduct("Burden")]
 [assembly: AssemblyCulture("")]
 
 // Setting ComVisible to false makes the types in this assembly not visible 

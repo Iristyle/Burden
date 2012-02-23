@@ -4,7 +4,7 @@ using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Threading;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	/// <summary>	Wraps up the durable storage and in-memory execution of jobs into something more convenient to use. </summary>
 	/// <remarks>	7/24/2011. </remarks>

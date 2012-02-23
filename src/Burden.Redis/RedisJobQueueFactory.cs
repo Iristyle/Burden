@@ -1,7 +1,7 @@
 using System;
 using ServiceStack.Redis;
 
-namespace EPS.Concurrency.Redis
+namespace Burden.Redis
 {
 	/// <summary>	Factory used to create instances of RedisJobQueue.  </summary>
 	/// <remarks>	7/24/2011. </remarks>

@@ -1,6 +1,6 @@
 using System;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	/// <summary>	A generic class representing an input annotated with an Exception.  </summary>
 	/// <remarks>	7/24/2011. </remarks>

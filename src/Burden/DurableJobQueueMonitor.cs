@@ -5,7 +5,7 @@ using System.Linq;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	/// <summary>	Provides a means for polling a durable job queue and publishing the inputs over an in-memory IObservable. </summary>
 	/// <remarks>	7/15/2011. </remarks>

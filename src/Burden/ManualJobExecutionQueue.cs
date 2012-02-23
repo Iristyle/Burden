@@ -8,7 +8,7 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	/// <summary>
 	/// A job queue of a given input and output type, where the jobs are executed by manually calling StartNext, or StartAsManyAs.

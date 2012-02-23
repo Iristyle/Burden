@@ -2,7 +2,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive;
 
-namespace EPS.Concurrency
+namespace Burden
 {	
 	/// <summary>
 	/// Interface for a job queue, where each job is expected to have a discrete input and output.  Use the System.Reactive.Unit type to

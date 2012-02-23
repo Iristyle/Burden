@@ -1,7 +1,7 @@
 using System;
 using EqualityComparer;
 
-namespace EPS.Concurrency.Tests.Unit
+namespace Burden.Tests
 {
 	public class TransientJobQueueFactory
 		: IDurableJobQueueFactory

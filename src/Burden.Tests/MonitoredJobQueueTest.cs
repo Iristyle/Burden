@@ -6,7 +6,7 @@ using System.Threading;
 using FakeItEasy;
 using Xunit;
 
-namespace EPS.Concurrency.Tests.Unit
+namespace Burden.Tests
 {
 	public class MonitoredJobQueueTest
 	{

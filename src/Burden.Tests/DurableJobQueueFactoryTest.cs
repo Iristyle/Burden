@@ -1,7 +1,7 @@
 ﻿using System;
 using Xunit;
 
-namespace EPS.Concurrency.Tests.Unit
+namespace Burden.Tests
 {
 	public abstract class DurableJobQueueFactoryTest<T>
 		where T: IDurableJobQueueFactory

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	/// <summary>	Queue of transient jobs, with no backing store. Provided only for testing and demonstration purposes. </summary>
 	/// <remarks>	7/27/2011.  Performance of this class will be terrible. </remarks>

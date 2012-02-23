@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Linq;
 using ServiceStack.Redis;
 
-namespace EPS.Concurrency.Redis
+namespace Burden.Redis
 {		
 	/// <summary>	An implementation of a durable job queue based on Redis.  </summary>
 	/// <remarks>	7/19/2011. </remarks>

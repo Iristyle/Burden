@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	/// <summary>	Defines a standard queue interface for durable storage of jobs. </summary>
 	/// <remarks>	7/5/2011. </remarks>

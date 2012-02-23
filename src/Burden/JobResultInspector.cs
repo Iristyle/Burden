@@ -1,7 +1,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	/// <summary>	A class that wraps up a given Func as an IJobResultInspector.  </summary>
 	/// <remarks>	7/24/2011. </remarks>

@@ -1,8 +1,8 @@
 ﻿using System;
-using EPS.Concurrency.Tests.Unit;
+using Burden.Tests;
 using Xunit;
 
-namespace EPS.Concurrency.Redis.Tests.Integration
+namespace Burden.Redis.Tests
 {
 	public class RedisJobQueueFactoryTest
 		: DurableJobQueueFactoryTest<RedisJobQueueFactory>

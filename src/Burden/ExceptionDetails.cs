@@ -1,6 +1,6 @@
 using System;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	/// <summary>	Describes all useful information from an Exception, in a format thats easy to serialize and compare.  </summary>
 	/// <remarks>	7/19/2011. </remarks>

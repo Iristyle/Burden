@@ -1,7 +1,7 @@
 using System;
 using System.Linq.Expressions;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	//TODO: 7-27-2011 -- these are some test concepts / ideas not ready for public consumption
 	//TODO: 7-27-2011 -- the idea would be alleviate the need for a real IDurableJobQueueFactory, but to instead provide an Expression that describes what it looks like to create one

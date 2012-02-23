@@ -5,7 +5,7 @@ using System.Threading;
 using Ploeh.AutoFixture;
 using Xunit;
 
-namespace EPS.Concurrency.Tests.Unit
+namespace Burden.Tests
 {
 	[SuppressMessage("Microsoft.Design", "CA1005:AvoidExcessiveParametersOnGenericTypes", Justification = "Non-issue for test classes really")]
 	public abstract class MonitoredJobQueueTestBase<TMonitoredQueue, TInput, TOutput, TPoison>

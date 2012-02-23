@@ -3,7 +3,7 @@ using System.Globalization;
 using RedisIntegration;
 using ServiceStack.Redis;
 
-namespace EPS.Concurrency.Redis.Tests.Integration
+namespace Burden.Redis.Tests
 {
 	public static class TestConnection
 	{

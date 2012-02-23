@@ -1,6 +1,6 @@
 using System;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	/// <summary>	Defines some basic parameters around how a job queue is monitored.  </summary>
 	/// <remarks>	8/14/2011. </remarks>

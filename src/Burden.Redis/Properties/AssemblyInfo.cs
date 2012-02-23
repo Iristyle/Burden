@@ -5,9 +5,9 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("EPS.Concurrency.Redis")]
+[assembly: AssemblyTitle("Burden.Redis")]
 [assembly: AssemblyDescription("An implementation of a persistent job queue in Redis")]
-[assembly: AssemblyProduct("EPS.Concurrency.Redis")]
+[assembly: AssemblyProduct("Burden.Redis")]
 [assembly: AssemblyCulture("")]
 
 // Setting ComVisible to false makes the types in this assembly not visible 

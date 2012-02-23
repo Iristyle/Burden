@@ -2,7 +2,7 @@
 using System.Reactive.Concurrency;
 using System.Diagnostics.CodeAnalysis;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	/// <summary>	Queue that will automatically keep a specified minimum number of jobs running as long as they're available. </summary>
 	/// <remarks>	Originally based on code from <a href="http://rxpowertoys.codeplex.com/" /> but modified heavily for jobs with inputs and outputs. </remarks>

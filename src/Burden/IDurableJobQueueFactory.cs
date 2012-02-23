@@ -1,6 +1,6 @@
 using System;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	/// <summary>	Simple interface that defines how to construct an IDurableJobQueue given input and poison types.  </summary>
 	/// <remarks>	7/24/2011. </remarks>

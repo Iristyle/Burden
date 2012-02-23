@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	/// <summary>	Provides a way to wrap an IDurableJobQueue and provide notifications over IObservable on the major queue actions.  </summary>
 	/// <remarks>	7/27/2011. </remarks>

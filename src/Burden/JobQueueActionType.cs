@@ -1,6 +1,6 @@
 using System;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	/// <summary>	Potential action types for a queued job, for  that represent JobQueueActionType.  </summary>
 	/// <remarks>	7/8/2011. </remarks>

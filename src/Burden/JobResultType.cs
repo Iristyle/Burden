@@ -1,6 +1,6 @@
 using System;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	/// <summary>	Values that represent JobResultType - similar in spirit to System.Reactive.NotificationKind.  </summary>
 	/// <remarks>	7/14/2011. </remarks>

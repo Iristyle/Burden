@@ -1,7 +1,7 @@
 using System;
 using System.Reactive.Concurrency;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	internal static class LocalScheduler
 	{

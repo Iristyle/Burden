@@ -1,6 +1,6 @@
 using System;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	/// <summary>
 	/// Describes a queue item returned from IDurableJobQueue.NextQueuedItem.  Since value types cannot be null, and it is necessary to

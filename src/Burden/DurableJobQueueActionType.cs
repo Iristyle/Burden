@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	/// <summary>	Values that describe the type of DurableJobQueueAction.  </summary>
 	/// <remarks>	7/26/2011. </remarks>

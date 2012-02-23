@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace EPS.Concurrency.Redis
+namespace Burden.Redis
 {
 	/// <summary>	A simple class that keeps the various queue names together.  </summary>
 	/// <remarks>	6/28/2011. </remarks>

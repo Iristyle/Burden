@@ -2,7 +2,7 @@ using System;
 using Ploeh.AutoFixture;
 using Xunit;
 
-namespace EPS.Concurrency.Tests.Unit
+namespace Burden.Tests
 {
 	public class ItemTest
 	{

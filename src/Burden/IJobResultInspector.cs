@@ -1,7 +1,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	/// <summary>	Defines a standard mechanism for inspecting a job result and defining an action as a result. </summary>
 	/// <remarks>	7/8/2011. </remarks>

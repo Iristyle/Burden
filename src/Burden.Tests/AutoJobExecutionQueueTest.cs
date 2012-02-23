@@ -6,7 +6,7 @@ using FakeItEasy;
 using Xunit;
 using Xunit.Extensions;
 
-namespace EPS.Concurrency.Tests.Unit
+namespace Burden.Tests
 {
 	public abstract class AutoJobExecutionQueueTest<TJobInput, TJobOutput> :
 		JobExecutionQueueTest<AutoJobExecutionQueue<TJobInput, TJobOutput>, TJobInput, TJobOutput>

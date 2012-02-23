@@ -1,6 +1,6 @@
 using System;
 
-namespace EPS.Concurrency
+namespace Burden
 {
 	/// <summary>
 	/// A generic class representing the result of a queue read, since value types cannot be null, and it is necessary to return a read

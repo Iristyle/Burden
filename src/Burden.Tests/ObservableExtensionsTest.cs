@@ -2,7 +2,7 @@ using System;
 using System.Reactive.Linq;
 using Xunit;
 
-namespace EPS.Concurrency.Tests.Unit
+namespace Burden.Tests
 {
 	public class ObservableExtensionsTest
 	{
