@@ -1,10 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <ProjectGuid>{8D3539C9-8E82-4EDE-A9E2-5D7DF32F506C}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace>EPS.Concurrency</RootNamespace>
-    <AssemblyName>EPS.Concurrency</AssemblyName>
+    <RootNamespace>Burden</RootNamespace>
+    <AssemblyName>Burden</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\..\src\</SolutionDir>
@@ -102,7 +102,7 @@
     <Compile Include="TransientJobQueue.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="EPS.Concurrency.nuspec" />
+    <None Include="Burden.nuspec" />
     <None Include="packages.config" />
   </ItemGroup>
   <!--

@@ -1,13 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EPS.Concurrency", "EPS.Concurrency\EPS.Concurrency.csproj", "{8D3539C9-8E82-4EDE-A9E2-5D7DF32F506C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Burden", "Burden\Burden.csproj", "{8D3539C9-8E82-4EDE-A9E2-5D7DF32F506C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EPS.Concurrency.Redis", "EPS.Concurrency.Redis\EPS.Concurrency.Redis.csproj", "{92B6F718-458A-4ABD-8F35-3E257828AA57}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Burden.Redis", "Burden.Redis\Burden.Redis.csproj", "{92B6F718-458A-4ABD-8F35-3E257828AA57}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EPS.Concurrency.Redis.Tests.Integration", "EPS.Concurrency.Redis.Tests.Integration\EPS.Concurrency.Redis.Tests.Integration.csproj", "{2F5E0EE8-0A97-4F46-B73A-9795F8F9F96E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Burden.Redis.Tests", "Burden.Redis.Tests\Burden.Redis.Tests.csproj", "{2F5E0EE8-0A97-4F46-B73A-9795F8F9F96E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EPS.Concurrency.Tests.Unit", "EPS.Concurrency.Tests.Unit\EPS.Concurrency.Tests.Unit.csproj", "{99A2A7DE-81CE-4818-B06F-8E688CD7FA6D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Burden.Tests.Unit", "Burden.Tests\Burden.Tests.csproj", "{99A2A7DE-81CE-4818-B06F-8E688CD7FA6D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

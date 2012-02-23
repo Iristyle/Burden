@@ -1,10 +1,10 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
-    <ProjectGuid>{99A2A7DE-81CE-4818-B06F-8E688CD7FA6D}</ProjectGuid>
+    <ProjectGuid>{2F5E0EE8-0A97-4F46-B73A-9795F8F9F96E}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace>EPS.Concurrency.Tests.Unit</RootNamespace>
-    <AssemblyName>EPS.Concurrency.Tests.Unit</AssemblyName>
+    <RootNamespace>Burden.Redis.Tests</RootNamespace>
+    <AssemblyName>Burden.Redis.Tests</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\..\src\</SolutionDir>
@@ -56,51 +56,43 @@
   </ItemGroup>
   -->
   <ItemGroup>
-    <Reference Include="EqualityComparer">
-      <HintPath>..\packages\EqualityComparer.0.1.0.0\lib\net40-Client\EqualityComparer.dll</HintPath>
+    <Reference Include="RedisIntegration">
+      <HintPath>..\packages\RedisIntegration.0.2.0.0\lib\net40\RedisIntegration.dll</HintPath>
+    </Reference>
+    <Reference Include="ServiceStack.Common">
+      <HintPath>..\packages\ServiceStack.Common.3.4.3\lib\ServiceStack.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="ServiceStack.Interfaces">
+      <HintPath>..\packages\ServiceStack.Common.3.4.3\lib\ServiceStack.Interfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="ServiceStack.Redis">
+      <HintPath>..\packages\ServiceStack.Redis.3.3.6\lib\ServiceStack.Redis.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Reactive, Version=1.0.10621.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\Rx-Main.1.0.11226\lib\Net4\System.Reactive.dll</HintPath>
-    </Reference>
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="Common.Logging">
-      <HintPath>..\packages\Common.Logging.2.0.0\lib\2.0\Common.Logging.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DurableJobQueueMonitorTest.cs" />
-    <Compile Include="AutoJobExecutionQueueTest.cs" />
-    <Compile Include="DurableQueueActionTest.cs" />
-    <Compile Include="DurableJobQueueFactoryTest.cs" />
-    <Compile Include="DurableJobQueueTest.cs" />
-    <Compile Include="Dynamic.cs" />
-    <Compile Include="JobExecutionQueueTest.cs" />
-    <Compile Include="JobResultInspectorTestBase.cs" />
-    <Compile Include="MonitoredJobQueueConfigurationTest.cs" />
-    <Compile Include="MonitoredJobQueueTestBase.cs" />
-    <Compile Include="ItemTest.cs" />
-    <Compile Include="JobQueueActionTest.cs" />
-    <Compile Include="JobResultInspectorTest.cs" />
-    <Compile Include="JobResultTest.cs" />
-    <Compile Include="JobResultJournalWriterTest.cs" />
-    <Compile Include="ManualJobExecutionQueueTest.cs" />
-    <Compile Include="MonitoredJobQueueTest.cs" />
-    <Compile Include="ObservableDurableJobQueueTest.cs" />
-    <Compile Include="ObservableExtensionsTest.cs" />
-    <Compile Include="PoisonTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TransientJobQueueFactory.cs" />
-    <Compile Include="TransientJobQueueTest.cs" />
+    <Compile Include="QueueNamesTest.cs" />
+    <Compile Include="RedisJobQueueFactoryTest.cs" />
+    <Compile Include="RedisJobQueueTest.cs" />
+    <Compile Include="TestConnection.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\EPS.Concurrency\EPS.Concurrency.csproj">
+    <ProjectReference Include="..\..\src\Burden.Redis\Burden.Redis.csproj">
+      <Project>{92B6F718-458A-4ABD-8F35-3E257828AA57}</Project>
+      <Name>EPS.Concurrency.Redis</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Burden.Tests\Burden.Tests.csproj">
+      <Project>{99A2A7DE-81CE-4818-B06F-8E688CD7FA6D}</Project>
+      <Name>EPS.Concurrency.Tests.Unit</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\Burden\Burden.csproj">
       <Project>{8D3539C9-8E82-4EDE-A9E2-5D7DF32F506C}</Project>
       <Name>EPS.Concurrency</Name>
     </ProjectReference>
