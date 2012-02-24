@@ -21,6 +21,7 @@
     <CodeAnalysisRuleDirectories>$(FxCopRulesPath)</CodeAnalysisRuleDirectories>
     -->
     <Ruleset>EPS</Ruleset>
+    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <OutputPath Condition="$(OutputPath) == ''">bin\Debug</OutputPath>
