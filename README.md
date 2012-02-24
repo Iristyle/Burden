@@ -4,7 +4,7 @@
 
 Burden leverages the power of the [Reactive Extensions](http://msdn.microsoft.com/en-us/data/gg577609) to provide a typed durable job queue.  At the moment, the only supported back-end storage for job input is Redis via the Burden.Redis library.
 
-The basic concept is that job input messages are asynchronously relayed through an Rx collection to a back-end durable store.  At a later time they are asynchronously picked up and executed, at which point they are moved to either a completed queue or a poisoned queue.  The concurrency of executing jobs is managed by the Rx task scheduler (which generally relies on [Scheduler.TaskPool](http://msdn.microsoft.com/en-us/library/system.reactive.concurrency.scheduler.taskpool(v=vs.103).aspx))
+The basic concept is that job input messages are asynchronously relayed through an Rx collection to a back-end durable store.  At a later time they are asynchronously picked up and executed, at which point they are moved to either a completed queue or a poisoned queue.  The concurrency of executing jobs is managed by the Rx task scheduler (which generally relies on [Scheduler.TaskPool](http://msdn.microsoft.com/en-us/library/system.reactive.concurrency.scheduler.taskpool%28v=vs.103%29.aspx))
 
 This type of design can be useful to queue up background syncs with external services for instance, but there are many other use cases where you want to kick off background jobs in a manner that has a reasonable amount of guarantee that the job will eventually complete if the original host process dies.
 
@@ -42,7 +42,7 @@ Each piece of the system is customizable to fit whatever specific needs are.
 
 In it's most basic usage, the static factory method ```MonitoredJobQueue.Create``` will accept a factory for creating durable job storage, a ```Func<TInput, TOutput>``` to define the job execution code and a maximum number of concurrent jobs to run.
 
-The following example stores job inputs in Redis, checks Redis every 3 seconds for new inputs, and will execute up to 10 concurrent jobs.  This job does nothing more than write the job input to the console, and returns void - [System.Reactive.Unit](http://msdn.microsoft.com/en-us/library/system.reactive.unit(v=vs.103).aspx)) in Rx parlance.
+The following example stores job inputs in Redis, checks Redis every 3 seconds for new inputs, and will execute up to 10 concurrent jobs.  This job does nothing more than write the job input to the console, and returns void - [System.Reactive.Unit](http://msdn.microsoft.com/en-us/library/system.reactive.unit%28v=vs.103%29.aspx)) in Rx parlance.
 
 ```csharp
   private static int counter;
