@@ -6,12 +6,14 @@
     <title>$title$</title>
     <authors>Ethan Brown</authors>
     <owners>$author$</owners>
-    <summary>A</summary>
+    <summary>An open source reliable queue implementation built on Rx (Reactive Extensions), that relieves users from the Burden of managing queue durability / poison messages.  Simply supply inputs to the queue, and a Func for handling the inputs and let Burden handle the rest!</summary>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>$description$</description>
     <releaseNotes>Initial release</releaseNotes>
     <projectUrl>https://github.com/EastPoint/Burden</projectUrl>
-    <tags>rx reliable mq message queue redis</tags>
+    <licenseUrl>https://github.com/EastPoint/Burden/blob/master/LICENSE.md</licenseUrl>
+    <iconUrl>https://github.com/EastPoint/Burden/raw/master/logo-128.png</iconUrl>
+    <tags>rx reliable mq message queue</tags>
     <language>en-US</language>
     <copyright>East Point Systems 2012 and contributors</copyright>
   </metadata>

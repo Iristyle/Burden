@@ -6,11 +6,13 @@
     <title>$title$</title>
     <authors>Ethan Brown</authors>
     <owners>$author$</owners>
-    <summary>A</summary>
+    <summary>A reliable queue storage implemenation for the Burden job queue management library, based on Redis.</summary>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>$description$</description>
     <releaseNotes>Initial release</releaseNotes>
     <projectUrl>https://github.com/EastPoint/Burden</projectUrl>
+    <licenseUrl>https://github.com/EastPoint/Burden/blob/master/LICENSE.md</licenseUrl>
+    <iconUrl>https://github.com/EastPoint/Burden/raw/master/logo-128.png</iconUrl>
     <tags>rx reliable mq message queue redis</tags>
     <language>en-US</language>
     <copyright>East Point Systems 2012 and contributors</copyright>
