@@ -72,6 +72,7 @@ _[Rr]e[Ss]harper*/
 *.sln.docstates
 *.fbpInf
 lint.db
+.idea/
 
 #Build Scripts
 [Bb]uildArtifacts/
